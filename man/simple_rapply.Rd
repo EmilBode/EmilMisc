@@ -4,7 +4,7 @@
 \alias{simple_rapply}
 \title{Alternative for rapply}
 \usage{
-simple_rapply(x, fn, ..., classes = "ANY", inclLists = F)
+simple_rapply(x, fn, ..., classes = "ANY", inclLists = "No")
 }
 \arguments{
 \item{x}{Any object, but usually a list (if not a list, the result is identical to calling fn(x, ...))}
@@ -15,7 +15,9 @@ simple_rapply(x, fn, ..., classes = "ANY", inclLists = F)
 
 \item{classes}{A character vector of class names, or "ANY" to match any class. Other classes are returned unmodified}
 
-\item{inclLists}{Logical. Should fn be also applied to the lists themselves? see 'Examples'}
+\item{inclLists}{Should fn be also applied to the lists themselves? see 'Examples'.
+Can be FALSE, 'No', 'First', 'Last' or TRUE. First and Last apply fn to the list themselves either before or after applying to the elements themselves.
+TRUE and FALSE are for backward compatibility, and are casted to 'No' and 'First', with a warning}
 }
 \value{
 a list with the same structure as x, with fn applied over the elements

@@ -83,7 +83,9 @@ libinstandload <- function(..., order=F, verbose=F, extras=T) {
 #' @param fn A function to apply over the elements of x
 #' @param ... Additional arguments passed on to fn
 #' @param classes A character vector of class names, or "ANY" to match any class. Other classes are returned unmodified
-#' @param inclLists Logical. Should fn be also applied to the lists themselves? see 'Examples'
+#' @param inclLists Should fn be also applied to the lists themselves? see 'Examples'.
+#' Can be FALSE, 'No', 'First', 'Last' or TRUE. First and Last apply fn to the list themselves either before or after applying to the elements themselves.
+#' TRUE and FALSE are for backward compatibility, and are casted to 'No' and 'First', with a warning
 #' @return a list with the same structure as x, with fn applied over the elements
 #' @seealso rapply
 #' @examples
@@ -98,11 +100,21 @@ libinstandload <- function(..., order=F, verbose=F, extras=T) {
 #' simple_rapply(L, function(x) {if(!is.null(names(x))) x[order(names(x))] else x}, inclLists=TRUE)
 #' @export
 
-simple_rapply <- function(x, fn, ..., classes='ANY', inclLists=F) {
+simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
+  if(is.logical(inclLists)) {
+    inclLists <- ifelse(inclLists, 'First', 'Last')
+    warning('Argument inclLists is logical, which is deprecated. Use "No", "First" or "Last" instead.')
+  }
+  if(length(fn)>1 || length(inclLists)>1 || inclLists %!in% c('No','First','Last')) stop('Bad arguments')
   if(is.list(x))
   {
-    if(inclLists) x <- fn(x, ...)
-    lapply(x, simple_rapply, fn, ..., classes=classes, inclLists=inclLists) # Don't sapply this, return value must be consistent (thus list)
+    if(inclLists=='First') x <- fn(x, ...)
+    if(inclLists=='Last') {
+      x <- lapply(x, simple_rapply, fn, ..., classes=classes, inclLists=inclLists) # Don't sapply this, return value must be consistent (thus list)
+      return(fn(x,...))
+    } else {
+      return(lapply(x, simple_rapply, fn, ..., classes=classes, inclLists=inclLists)) # Don't sapply this, return value must be consistent (thus list)
+    }
   } else {
     if(classes=='ANY' || class(x) %in% classes) {
       fn(x, ...)
