@@ -17,7 +17,7 @@ libinstandload <- function(..., order=F, verbose=F, extras=T) {
   packs <- unlist(packs)
   if(extras) {
     if('extrafont' %in% packs) {
-      if(length(find.package('extrafont'))==0) {
+      if(length(tryCatch(find.package('extrafont'), error=function(e) {character()}))==0) {
         loadfonts <- importfonts <- T
       } else if(!'package:extrafont' %in% search()) {
         importfonts <- F
