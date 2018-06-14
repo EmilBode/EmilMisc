@@ -353,14 +353,6 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
   }
 }
 
-.onAttach <- function(libname, pkgname) {
-  if(identical(NA, getOption('checkMasking_Allowed', default=NA))) {
-    options(checkMasking_Allowed=data.frame(
-      name=c('src', 'n', 'par','FunctionNameThatServesAsAnExample'),
-      env=c('.GlobalEnv', '.GlobalEnv', '.GlobalEnv','any')))
-  }
-}
-
 #' Customary function for printing output and simalteneously writing to a logfile
 #'
 #' Character vectors are printed using cat instead of print.\cr
@@ -422,3 +414,31 @@ extractComments <- function(FileName, max=9, fromLine=1, ToLine=-1, tab='\t') {
   return(file)
 }
 
+#' Alternative for format.Date
+#'
+#' On the R-devel mailinglist, it was noted that as.Date(Inf, origin='1970-01-01') is stored as a valid Date-object,
+#' and is.na() returns FALSE, but when printing this object is shows 'NA", which is confusing.
+#' It turns out this is because when formatting a Date-object it is converted to a POSIXlt-object, which fails for Inf, as well as other out-of-range values.
+#' Therefore this function default to a numerical value if the date is outside the range 1-1-1 up till 9999-12-31, with a warning
+#'
+#' @export
+format.Date <- function (x, ...) {
+  xx <- format(as.POSIXlt(x), ...)
+  names(xx) <- names(x)
+  if(any(!is.na(x) & (-719162>as.numeric(x) | as.numeric(x)>2932896))) {
+    xx[!is.na(x) & (-719162>as.numeric(x) | as.numeric(x)>2932896)] <-
+      paste('Date with numerical value',as.numeric(x[!is.na(x) & (-719162>as.numeric(x) | as.numeric(x)>2932896)]))
+    warning('Some dates are not in the interval 01-01-01 and 9999-12-31, showing numerical value.')
+  }
+  xx
+}
+
+
+.onAttach <- function(libname, pkgname) {
+  if(identical(NA, getOption('checkMasking_Allowed', default=NA))) {
+    options(checkMasking_Allowed=data.frame(
+      name=c('src', 'n', 'par','FunctionNameThatServesAsAnExample'),
+      env=c('.GlobalEnv', '.GlobalEnv', '.GlobalEnv','any')))
+  }
+  environment(print.Date) <- environment()
+}
