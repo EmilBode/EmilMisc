@@ -433,6 +433,28 @@ format.Date <- function (x, ...) {
   xx
 }
 
+#' Different approach-route for print.Date
+#'
+#' A bit of a hack, redefining print.Date.
+#' It's the same as in base (R 3.5.1), but this is calling EmilMisc::format.Date
+#' \cr\cr Note that the the interaction between this declaration and the S3-dispatch-system is a bit messy, and getS3method('print', class = 'Date') will be probably not give you this function.
+#' If you do want the source-code, simply call EmilMisc:::printDate (with three colons)
+#'
+#' @export
+print.Date <- function (x, max = NULL, ...)
+{
+  if (is.null(max))
+    max <- getOption("max.print", 9999L)
+  if (max < length(x)) {
+    print(format(x[seq_len(max)]), max = max, ...)
+    cat(" [ reached getOption(\"max.print\") -- omitted",
+        length(x) - max, "entries ]\n")
+  }
+  else if (length(x))
+    print(format(x), max = max, ...)
+  else cat(class(x)[1L], "of length 0\n")
+  invisible(x)
+}
 
 .onAttach <- function(libname, pkgname) {
   if(identical(NA, getOption('checkMasking_Allowed', default=NA))) {
@@ -440,5 +462,5 @@ format.Date <- function (x, ...) {
       name=c('src', 'n', 'par','FunctionNameThatServesAsAnExample'),
       env=c('.GlobalEnv', '.GlobalEnv', '.GlobalEnv','any')))
   }
-  environment(print.Date) <- environment()
+  environment(print.Date) <- as.environment('package:EmilMisc')
 }
