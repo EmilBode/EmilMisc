@@ -6,9 +6,16 @@
 \usage{
 \method{print}{Date}(x, max = NULL, ...)
 }
+\arguments{
+\item{x}{Date to format}
+
+\item{max}{Maximum number of dates to print. NULL to use getOption("max.print", 9999L)/default maximum}
+
+\item{...}{Other arguments passed on to print}
+}
 \description{
 A bit of a hack, redefining print.Date.
-It's the same as in base (R 3.5.1), but this is calling EmilMisc::format.Date
+It's the same as in base (R 3.5.0), but this is calling EmilMisc::format.Date
 \cr\cr Note that the the interaction between this declaration and the S3-dispatch-system is a bit messy, and getS3method('print', class = 'Date') will be probably not give you this function.
 If you do want the source-code, simply call EmilMisc:::printDate (with three colons)
 }

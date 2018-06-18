@@ -32,7 +32,7 @@ LazyOr is analogous, fun(b) only called if a is FALSE or NA
 
 Note that this may produce unexpected results if elements of fun(b) are not independent of each other, e.g. calling: \cr
 \code{
-nums <- 1:10\cr
+nums <- 1:10
 nums%%2==0 & cumsum(nums)%%2==0
 }\cr\cr
 and\cr\cr
@@ -44,7 +44,8 @@ gives different results, as \code{cumsum(1:10[c(2,4,6,8,10)]}) is called, instea
 
 \examples{
 # A function to check evenness, but who prints an alert if the value is more then 10
-input <- data.frame(valid=c(T,T,T,T,F,F), value=c('1','12',2,'3','huh',14), stringsAsFactors = F)
+input <- data.frame(valid=c(TRUE,TRUE,TRUE,TRUE,FALSE,FALSE),
+value=c('1','12',2,'3','huh',14), stringsAsFactors = FALSE)
 fun <- function(x) {
   if(any(as.numeric(x)>10))
     cat('Numbers over 10 (unexpected):',as.numeric(x)[as.numeric(x)>10], '')
@@ -53,16 +54,18 @@ fun <- function(x) {
 cat("\\nAnd in total we have",sum(input$valid & fun(input$value)),"even numbers")
 cat("\\nWith LazyAnd we have in total:",sum(LazyAnd(input$valid, input$value, fun)),"even numbers")
 
-# Example where calling a function for all possible values would be possible, but (prohibitively) expensive
+# Example where calling a function for all possible values would be possible,
+# but (prohibitively) expensive
 set.seed(4)
-is.prime <- function(n) n == 2L || all(n \%\% 2L:max(2,floor(sqrt(n))) != 0) # This function may be very expensive, so we don't want to check all numbers
+# This function may be very expensive, so we don't want to check all numbers
+is.prime <- function(n) n == 2L || all(n \%\% 2L:max(2,floor(sqrt(n))) != 0)
 n <- floor(runif(1e4, min=0, max=.5)^(-4))
-LazyAnd(n<1e10, n, sapply, FUN=is.prime)
+surely_prime <- LazyAnd(n<1e10, n, sapply, FUN=is.prime)
 
-The difference between this call and
-\dontrun{sapply(n, is.prime) # Don't run this!}
-is getting results for 62 more occurences (with low probability of being prime, probably 2-3 of them are prime),
-at the cost of a LOT of resources
+# The difference between this call and
+\dontrun{sapply(n, is.prime) # Don't try this at home!}
+# is getting results for 62 more occurences (with low probability of being prime,
+# probably 2-3 of them are prime), at the cost of a LOT of resources.
 
 
 }

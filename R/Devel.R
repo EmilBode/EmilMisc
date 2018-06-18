@@ -11,50 +11,50 @@
 #'     Note that initiliazation scripts are added on an ad-hoc basis, and is not complete. In this first version. it is only implemented for 'extrafont'
 #' @export
 
-libinstandload <- function(..., order=F, verbose=F, extras=T) {
+libinstandload <- function(..., order=FALSE, verbose=FALSE, extras=TRUE) {
   packs <- list(...)
   if(!all(rapply(packs, class)=='character')) stop('Unexpected arguments, all args in ... should be character or list of characters')
   packs <- unlist(packs)
   if(extras) {
     if('extrafont' %in% packs) {
       if(length(tryCatch(find.package('extrafont'), error=function(e) {character()}))==0) {
-        loadfonts <- importfonts <- T
+        loadfonts <- importfonts <- TRUE
       } else if(!'package:extrafont' %in% search()) {
-        importfonts <- F
-        loadfonts <- T
+        importfonts <- FALSE
+        loadfonts <- TRUE
       } else {
-        loadfonts <- importfonts <- F
+        loadfonts <- importfonts <- FALSE
       }
     }
   }
   if(order) {
     for(p in packs) {
-      if(verbose && !require(p, character.only = T)) {
-        install.packages(p)
-        library(p, character.only=T)
-      } else if(!verbose && !suppressMessages(suppressWarnings(require(p, character.only = T,quietly = T)))) {
-        suppressMessages(install.packages(p))
-        suppressMessages(library(p))
+      if(verbose && !require(p, character.only = TRUE)) {
+        utils::install.packages(p)
+        library(p, character.only=TRUE)
+      } else if(!verbose && !suppressMessages(suppressWarnings(require(p, character.only = TRUE,quietly = TRUE)))) {
+        suppressMessages(utils::install.packages(p))
+        suppressMessages(library(p, character.only = T))
       }
     }
   } else {
     if(verbose) {
-      install <- !sapply(packs, require, character.only=T)
+      install <- !sapply(packs, require, character.only=TRUE)
       if(any(install)) {
-        install.packages(unlist(packs[install]))
-        sapply(packs[install], library, character.only=T)
+        utils::install.packages(unlist(packs[install]))
+        sapply(packs[install], library, character.only=TRUE)
       }
     } else {
-      install <- suppressMessages(suppressWarnings(!sapply(packs, require, character.only=T, quietly=T)))
+      install <- suppressMessages(suppressWarnings(!sapply(packs, require, character.only=TRUE, quietly=TRUE)))
       if(any(install)) {
-        suppressMessages(install.packages(unlist(packs[install])))
-        suppressMessages(sapply(packs[install], library, character.only=T))
+        suppressMessages(utils::install.packages(unlist(packs[install])))
+        suppressMessages(sapply(packs[install], library, character.only=TRUE))
       }
     }
   }
   if(extras) {
     if('extrafont' %in% packs) {
-      if(importfonts) font_import(prompt=verbose)
+      if(importfonts) extrafont::font_import(prompt=verbose)
       if(loadfonts) {
         if(verbose) {
           loadfonts()
@@ -128,10 +128,13 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #'
 #' Simple function, element x is not in y.\cr
 #' x \%!in\% y is the same as !x \%in\% y\cr
-#' Just implemented because I've found myself having to go back too often\cr
+#' Just implemented because I've found myself having to go back too often.
+#'
+#' @param x,y Used as in !(x \%in\% y)
 #'
 #' @name not-in
 #' @rdname not-in
+#'
 #' @export
 
 `%!in%` <- function(x,y)!('%in%'(x,y))
@@ -155,7 +158,7 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' @section Warning:
 #' Note that this may produce unexpected results if elements of fun(b) are not independent of each other, e.g. calling: \cr
 #' \code{
-#' nums <- 1:10\cr
+#' nums <- 1:10
 #' nums%%2==0 & cumsum(nums)%%2==0
 #' }\cr\cr
 #' and\cr\cr
@@ -166,7 +169,8 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #'
 #' @examples
 #' # A function to check evenness, but who prints an alert if the value is more then 10
-#' input <- data.frame(valid=c(T,T,T,T,F,F), value=c('1','12',2,'3','huh',14), stringsAsFactors = F)
+#' input <- data.frame(valid=c(TRUE,TRUE,TRUE,TRUE,FALSE,FALSE),
+#' value=c('1','12',2,'3','huh',14), stringsAsFactors = FALSE)
 #' fun <- function(x) {
 #'   if(any(as.numeric(x)>10))
 #'     cat('Numbers over 10 (unexpected):',as.numeric(x)[as.numeric(x)>10], '')
@@ -175,16 +179,18 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' cat("\nAnd in total we have",sum(input$valid & fun(input$value)),"even numbers")
 #' cat("\nWith LazyAnd we have in total:",sum(LazyAnd(input$valid, input$value, fun)),"even numbers")
 #'
-#' # Example where calling a function for all possible values would be possible, but (prohibitively) expensive
+#' # Example where calling a function for all possible values would be possible,
+#' # but (prohibitively) expensive
 #' set.seed(4)
-#' is.prime <- function(n) n == 2L || all(n %% 2L:max(2,floor(sqrt(n))) != 0) # This function may be very expensive, so we don't want to check all numbers
+#' # This function may be very expensive, so we don't want to check all numbers
+#' is.prime <- function(n) n == 2L || all(n %% 2L:max(2,floor(sqrt(n))) != 0)
 #' n <- floor(runif(1e4, min=0, max=.5)^(-4))
-#' LazyAnd(n<1e10, n, sapply, FUN=is.prime)
+#' surely_prime <- LazyAnd(n<1e10, n, sapply, FUN=is.prime)
 #'
-#' The difference between this call and
-#' \dontrun{sapply(n, is.prime) # Don't run this!}
-#' is getting results for 62 more occurences (with low probability of being prime, probably 2-3 of them are prime),
-#' at the cost of a LOT of resources
+#' # The difference between this call and
+#' \dontrun{sapply(n, is.prime) # Don't try this at home!}
+#' # is getting results for 62 more occurences (with low probability of being prime,
+#' # probably 2-3 of them are prime), at the cost of a LOT of resources.
 #'
 #'
 #' @export
@@ -259,19 +265,19 @@ LazyOr <- function(a, b, fun, ...) {
 
 checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'), extrascripts=c(getOption('checkMasking_extraScripts')), functions=c(), packages=c('own')) {
   if(is.null(allowed) || is.na(allowed) || allowed=='') allowed <- data.frame()
-  allls <- sapply(search(), ls, sorted=F)
-  allls <- data.frame(name=unlist(allls, use.names = F),
+  allls <- sapply(search(), ls, sorted=FALSE)
+  allls <- data.frame(name=unlist(allls, use.names = FALSE),
                       env=as.factor(unlist(sapply(names(allls), function(x) {rep(x, times=length(allls[[x]]))}))),
-                      stringsAsFactors = F, row.names = c())
-  dupl <- allls[duplicated(allls$name) | duplicated(allls$name, fromLast = T),]
+                      stringsAsFactors = FALSE, row.names = c())
+  dupl <- allls[duplicated(allls$name) | duplicated(allls$name, fromLast = TRUE),]
   dupl <- dupl[!sapply(dupl$name, function(x) {class(get(x))}) %in% c('standardGeneric'),]
   if(nrow(dupl)==0) return(invisible(0))
   dupl <- dupl[!apply(dupl, 1, function(du) {
-    ga <- getAnywhere(du['name'])
+    ga <- utils::getAnywhere(du['name'])
     return(ga$dups[ga$where==du['env']])
   }),]
-  dupl <- dupl[duplicated(dupl$name) | duplicated(dupl$name, fromLast = T),]
-  dupl$env <- sub('package:','',fixed=T, dupl$env)
+  dupl <- dupl[duplicated(dupl$name) | duplicated(dupl$name, fromLast = TRUE),]
+  dupl$env <- sub('package:','',fixed=TRUE, dupl$env)
   packages <- lapply(packages, function(p) {
     if(p=='own') {
       environment()
@@ -284,26 +290,26 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
       return(NULL)
     }
   })
-  tocheck <- list(setNames(scripts,if(length(scripts)) paste0('scripts:',scripts)),
-                  setNames(extrascripts,if(length(extrascripts)) paste0('extrascripts:',extrascripts)),
-                  setNames(lapply(functions[sapply(functions, mode)!='function'], get, mode = 'function'),
+  tocheck <- list(stats::setNames(scripts,if(length(scripts)) paste0('scripts:',scripts)),
+                  stats::setNames(extrascripts,if(length(extrascripts)) paste0('extrascripts:',extrascripts)),
+                  stats::setNames(lapply(functions[sapply(functions, mode)!='function'], get, mode = 'function'),
                            if(any(sapply(functions, mode)!='function'))
                              paste0('functionnames:', functions[sapply(functions, mode)!='function'])),
-                  setNames(list(functions[sapply(functions, mode)=='function']),
+                  stats::setNames(list(functions[sapply(functions, mode)=='function']),
                            if(any(sapply(functions, mode)=='function'))
                              paste0('directfunction nr ',1:sum(sapply(functions, mode)=='function')) else NULL),
-                  rapply(packages, how='unlist', function(p) {lapply(as.character(lsf.str(p)), function(f) {
-                    setNames(list(get(f, pos=p)),paste0(p,':',f))})}))
+                  rapply(packages, how='unlist', function(p) {lapply(as.character(utils::lsf.str(p)), function(f) {
+                    stats::setNames(list(get(f, pos=p)),paste0(p,':',f))})}))
   tocheck <- unlist(tocheck)
   mentions <- sapply(tocheck, function(f) {
     if(mode(f)!='function' && (is.null(f) || is.na(f) || length(f)==0 || f=='')) return(list())
     if(mode(f)=='function') {
       lines <- utils::capture.output(f)
       if(!is.null(environment(f)))
-        allowed <- c(allowed, as.character(lsf.str(environment(f))))
+        allowed <- c(allowed, as.character(utils::lsf.str(environment(f))))
     } else if(f=='self') {
       lines <- utils::capture.output(checkMasking)
-      allowed <- c(allowed, as.character(lsf.str(environment(checkMasking))), as.character(lsf.str(environment())))
+      allowed <- c(allowed, as.character(utils::lsf.str(environment(checkMasking))), as.character(utils::lsf.str(environment())))
     } else {
       lines <- readLines(f)
     }
@@ -330,7 +336,7 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
     # And second, a list of not-so-regular-expressions, e.g. looking for masking of '+' or `<-`. Not clear where word-boundaries are, so just using fixed grep
     fixed <- unique(dupl$name[!grepl('^[a-z]*$', dupl$name)&!dupl$name %in% allowed])
     lines <- lines[sapply(lines, function(l) {any(sapply(regexes, grepl, x=l),
-                                                  sapply(fixed, grepl, x=l, fixed=T))})]
+                                                  sapply(fixed, grepl, x=l, fixed=TRUE))})]
     if(length(lines)>0) {
       # Find out which regex triggered a TRUE return for each line.
       # Note that if multiple functions/regexes on one line triggered a return, only the first one is considered
@@ -339,9 +345,9 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
       # If return is NA, this means the return was triggered by one of the fixed, not-so-regular-expressions
       if(any(is.na(fault))) {
         fault[is.na(fault)] <- gsub('^\\\\b|\\\\b$','',
-                                    fixed[sapply(lines[is.na(fault)], function(l) {which(sapply(fixed, grepl, x=l, fixed=T))[1]})])
+                                    fixed[sapply(lines[is.na(fault)], function(l) {which(sapply(fixed, grepl, x=l, fixed=TRUE))[1]})])
       }
-      return(mapply(c, linenumber=names(lines), line=lines, maskedName=fault, SIMPLIFY=T, USE.NAMES=F))
+      return(mapply(c, linenumber=names(lines), line=lines, maskedName=fault, SIMPLIFY=TRUE, USE.NAMES=FALSE))
     } else {
       return()
     }
@@ -358,6 +364,9 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
 #' Character vectors are printed using cat instead of print.\cr
 #' Multiple arguments are accepted, as seperate calls\cr
 #' Any output is first evaluated (in its entirety), then printed to files, finally to console
+#'
+#' @param ... Objects to print/write to file
+#' @param logpath Filename(s) of file(s) to print to, beside console. NULL if you just want to print to console.
 #'
 #' @export
 
@@ -377,7 +386,7 @@ out <- function(..., logpath=getOption('StandardPaths')[['TextOutput']]) {
 .out <- function(text, filepath) {
   tempwidth <- getOption('width')
   for(filename in filepath) {
-    sink(filename, append=T)
+    sink(filename, append=TRUE)
     options(width=200)
     if(class(text)=='character') {
       cat(text,'\n')
@@ -394,32 +403,15 @@ out <- function(..., logpath=getOption('StandardPaths')[['TextOutput']]) {
   }
 }
 
-#' Function that could be used as an alternative for other automatic documentation systems.
-#'
-#'
-#' @export
-extractComments <- function(FileName, max=9, fromLine=1, ToLine=-1, tab='\t') {
-  libinstandload('stringr')
-  file <- readLines(FileName, n=ToLine)
-  file <- str_extract(file[fromLine:length(file)], paste0('(##[0-',max,'].*)|(#{2,',max+1,'}[^#0-9]+)'))
-  file <- file[!is.na(file)]
-  for(n in 9:1) {
-    file <- gsub(pattern=paste0(paste0(rep('#', times=n+1), collapse=''), '[^#0-9]'),
-                 replace=paste0('##',n),
-                 x=file)
-  }
-  nrs <- as.numeric(substring(str_extract(file, '##[0-9]'),3,4))-1
-  file <- paste0(sapply(nrs, function(n) {paste0(rep(tab, times=n), collapse='')}),'- ',gsub('##[0-9][[:space:]]*','',file))
-  file <- gsub('\\\\t',tab,file)
-  return(file)
-}
-
 #' Alternative for format.Date
 #'
 #' On the R-devel mailinglist, it was noted that as.Date(Inf, origin='1970-01-01') is stored as a valid Date-object,
 #' and is.na() returns FALSE, but when printing this object is shows 'NA", which is confusing.
 #' It turns out this is because when formatting a Date-object it is converted to a POSIXlt-object, which fails for Inf, as well as other out-of-range values.
 #' Therefore this function default to a numerical value if the date is outside the range 1-1-1 up till 9999-12-31, with a warning
+#'
+#' @param x Date to format
+#' @param ... Other arguments passed on to format.POSIXlt
 #'
 #' @export
 format.Date <- function (x, ...) {
@@ -436,9 +428,13 @@ format.Date <- function (x, ...) {
 #' Different approach-route for print.Date
 #'
 #' A bit of a hack, redefining print.Date.
-#' It's the same as in base (R 3.5.1), but this is calling EmilMisc::format.Date
+#' It's the same as in base (R 3.5.0), but this is calling EmilMisc::format.Date
 #' \cr\cr Note that the the interaction between this declaration and the S3-dispatch-system is a bit messy, and getS3method('print', class = 'Date') will be probably not give you this function.
 #' If you do want the source-code, simply call EmilMisc:::printDate (with three colons)
+#'
+#' @param x Date to format
+#' @param max Maximum number of dates to print. NULL to use getOption("max.print", 9999L)/default maximum
+#' @param ... Other arguments passed on to print
 #'
 #' @export
 print.Date <- function (x, max = NULL, ...)

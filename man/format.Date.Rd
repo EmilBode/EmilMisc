@@ -6,6 +6,11 @@
 \usage{
 \method{format}{Date}(x, ...)
 }
+\arguments{
+\item{x}{Date to format}
+
+\item{...}{Other arguments passed on to format.POSIXlt}
+}
 \description{
 On the R-devel mailinglist, it was noted that as.Date(Inf, origin='1970-01-01') is stored as a valid Date-object,
 and is.na() returns FALSE, but when printing this object is shows 'NA", which is confusing.

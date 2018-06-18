@@ -7,8 +7,11 @@
 \usage{
 x \%!in\% y
 }
+\arguments{
+\item{x, y}{Used as in !(x \%in\% y)}
+}
 \description{
 Simple function, element x is not in y.\cr
 x \%!in\% y is the same as !x \%in\% y\cr
-Just implemented because I've found myself having to go back too often\cr
+Just implemented because I've found myself having to go back too often.
 }

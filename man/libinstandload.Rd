@@ -4,7 +4,7 @@
 \alias{libinstandload}
 \title{Library Auto-installation and loading}
 \usage{
-libinstandload(..., order = F, verbose = F, extras = T)
+libinstandload(..., order = FALSE, verbose = FALSE, extras = TRUE)
 }
 \arguments{
 \item{...}{list of packages to install}

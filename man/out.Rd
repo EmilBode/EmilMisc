@@ -6,6 +6,11 @@
 \usage{
 out(..., logpath = getOption("StandardPaths")[["TextOutput"]])
 }
+\arguments{
+\item{...}{Objects to print/write to file}
+
+\item{logpath}{Filename(s) of file(s) to print to, beside console. NULL if you just want to print to console.}
+}
 \description{
 Character vectors are printed using cat instead of print.\cr
 Multiple arguments are accepted, as seperate calls\cr
