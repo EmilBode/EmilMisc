@@ -343,8 +343,12 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
     if(length(lines)>0) {
       # Find out which regex triggered a TRUE return for each line.
       # Note that if multiple functions/regexes on one line triggered a return, only the first one is considered
-      fault <- gsub('^\\\\b|\\\\b$','',
-                    regexes[sapply(lines, function(l) {which(sapply(regexes, grepl, x=l))[1]})])
+      if(length(regexes)) {
+        fault <- gsub('^\\\\b|\\\\b$','',
+                      regexes[sapply(lines, function(l) {which(sapply(regexes, grepl, x=l))[1]})])
+      } else {
+        fault <- rep(NA,length(lines))
+      }
       # If return is NA, this means the return was triggered by one of the fixed, not-so-regular-expressions
       if(any(is.na(fault))) {
         fault[is.na(fault)] <- gsub('^\\\\b|\\\\b$','',
