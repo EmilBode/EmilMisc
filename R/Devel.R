@@ -271,12 +271,12 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
                       stringsAsFactors = FALSE, row.names = c())
   dupl <- allls[duplicated(allls$name) | duplicated(allls$name, fromLast = TRUE),]
   dupl <- dupl[!apply(dupl, 1, function(x) {class(get(x['name'], pos=x['env']))}) %in% c('standardGeneric'),]
-  if(nrow(dupl)==0) return(invisible(0))
   dupl <- dupl[!apply(dupl, 1, function(du) {
     ga <- utils::getAnywhere(du['name'])
     return(ga$dups[ga$where==du['env']])
   }),]
   dupl <- dupl[duplicated(dupl$name) | duplicated(dupl$name, fromLast = TRUE),]
+  if(nrow(dupl)==0) return(invisible(0))
   dupl$env <- sub('package:','',fixed=TRUE, dupl$env)
   packages <- lapply(packages, function(p) {
     if(p=='own') {
@@ -328,6 +328,7 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
     allowed <- unique(c(allowed, dupl$name[sapply(dupl$name, function(x) {
       isTRUE(grep(x, lines)[1]==grep(paste0(x,' ?<- ?[a-zA-Z]+::',x), lines)[1])
     })]))
+    if(!any(grepl('^[a-z]*$', dupl$name)&!dupl$name %in% allowed)) return()
     # And now we can remove any mentions of duplicate functions that are explicitly called
     lines <- gsub('[a-z]+::`?[a-z]+`?','', lines)
     # We use 2 ways of searching: as a regular expression with word-boundaries for 'normal' function names, and simpler approach for "complicated" functionnames
