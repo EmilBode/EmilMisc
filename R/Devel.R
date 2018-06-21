@@ -328,12 +328,14 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
     allowed <- unique(c(allowed, dupl$name[sapply(dupl$name, function(x) {
       isTRUE(grep(x, lines)[1]==grep(paste0(x,' ?<- ?[a-zA-Z]+::',x), lines)[1])
     })]))
-    if(!any(grepl('^[a-z]*$', dupl$name)&!dupl$name %in% allowed)) return()
+    if(all(dupl$name %in% allowed)) return()
     # And now we can remove any mentions of duplicate functions that are explicitly called
     lines <- gsub('[a-z]+::`?[a-z]+`?','', lines)
     # We use 2 ways of searching: as a regular expression with word-boundaries for 'normal' function names, and simpler approach for "complicated" functionnames
     # So looking for \\bduplicateFunction\\b, this is stored in regexes
-    regexes <- unique(paste0('\\b',dupl$name[grepl('^[a-z]*$', dupl$name)&!dupl$name %in% allowed],'\\b'))
+    # Not in one step because paste ('',character(0))  is recyclecasted to paste0('','')
+    regexes <- dupl$name[grepl('^[a-z]*$', dupl$name)&!dupl$name %in% allowed]
+    if(length(regexes)) regexes <- unique(paste0('\\b',regexes,'\\b'))
     # And second, a list of not-so-regular-expressions, e.g. looking for masking of '+' or `<-`. Not clear where word-boundaries are, so just using fixed grep
     fixed <- unique(dupl$name[!grepl('^[a-z]*$', dupl$name)&!dupl$name %in% allowed])
     lines <- lines[sapply(lines, function(l) {any(sapply(regexes, grepl, x=l),
