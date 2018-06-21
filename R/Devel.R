@@ -270,7 +270,7 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
                       env=as.factor(unlist(sapply(names(allls), function(x) {rep(x, times=length(allls[[x]]))}))),
                       stringsAsFactors = FALSE, row.names = c())
   dupl <- allls[duplicated(allls$name) | duplicated(allls$name, fromLast = TRUE),]
-  dupl <- dupl[!sapply(dupl$name, function(x) {class(get(x))}) %in% c('standardGeneric'),]
+  dupl <- dupl[!apply(dupl, 1, function(x) {class(get(x['name'], pos=x['env']))}) %in% c('standardGeneric'),]
   if(nrow(dupl)==0) return(invisible(0))
   dupl <- dupl[!apply(dupl, 1, function(du) {
     ga <- utils::getAnywhere(du['name'])
@@ -347,7 +347,7 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
         fault[is.na(fault)] <- gsub('^\\\\b|\\\\b$','',
                                     fixed[sapply(lines[is.na(fault)], function(l) {which(sapply(fixed, grepl, x=l, fixed=TRUE))[1]})])
       }
-      return(mapply(c, linenumber=names(lines), line=lines, maskedName=fault, SIMPLIFY=TRUE, USE.NAMES=FALSE))
+      return(data.frame(linenumber=names(lines), line=lines, maskedName=fault))
     } else {
       return()
     }
