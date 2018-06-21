@@ -301,7 +301,7 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
                   rapply(packages, how='unlist', function(p) {lapply(as.character(utils::lsf.str(p)), function(f) {
                     stats::setNames(list(get(f, pos=p)),paste0(p,':',f))})}))
   tocheck <- unlist(tocheck)
-  mentions <- sapply(tocheck, function(f) {
+  mentions <- lapply(tocheck, function(f) {
     if(mode(f)!='function' && (is.null(f) || is.na(f) || length(f)==0 || f=='')) return(list())
     if(mode(f)=='function') {
       lines <- utils::capture.output(f)
