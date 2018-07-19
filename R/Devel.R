@@ -459,11 +459,43 @@ print.Date <- function (x, max = NULL, ...)
   invisible(x)
 }
 
+
+
 .onAttach <- function(libname, pkgname) {
   if(identical(NA, getOption('checkMasking_Allowed', default=NA))) {
     options(checkMasking_Allowed=data.frame(
       name=c('src', 'n', 'par','FunctionNameThatServesAsAnExample'),
       env=c('.GlobalEnv', '.GlobalEnv', '.GlobalEnv','any')))
   }
-  environment(print.Date) <- as.environment('package:EmilMisc')
+  environment(write.table) <- environment(utils::write.table)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
