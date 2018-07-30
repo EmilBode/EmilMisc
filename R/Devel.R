@@ -233,6 +233,7 @@ Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
   nIn <- rep(nIn, length.out=length(test))
   out[!is.na(test) & test] <- yFun(yIn[!is.na(test) & test])
   out[!is.na(test) & !test] <- nFun(nIn[!is.na(test) & !test])
+  return(out)
 }
 
 
