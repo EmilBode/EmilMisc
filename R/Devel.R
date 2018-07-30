@@ -159,11 +159,11 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' Note that this may produce unexpected results if elements of fun(b) are not independent of each other, e.g. calling: \cr
 #' \code{
 #' nums <- 1:10
-#' nums%%2==0 & cumsum(nums)%%2==0
+#' nums \%\% 2==0 & cumsum(nums) \%\% 2==0
 #' }\cr\cr
 #' and\cr\cr
 #' \code{
-#' LazyAnd(nums%%2==0, nums, function(x) {cumsum(x)%%2==0})
+#' LazyAnd(nums \%\% 2==0, nums, function(x) {cumsum(x) \%\% 2==0})
 #' }\cr\cr
 #' gives different results, as \code{cumsum(1:10[c(2,4,6,8,10)]}) is called, instead of \code{cumsum(1:10)[c(2,4,6,8,10)]}, which produces different results
 #'
@@ -205,6 +205,34 @@ LazyOr <- function(a, b, fun, ...) {
   stopifnot(length(a)==1 || length(a)==length(b))
   a[is.na(a)|!a] <- a[is.na(a)|!a] & fun(b[is.na(a)|!a], ...)
   return(a)
+}
+
+#' Lazy version of ifelse
+#'
+#' When using ifelse, the return values are evaluated for all values, then discarded.
+#' This causes problems when you want to check for valid inputs in test.
+#' In this function, values are only evaluated when necessary:
+#' yFun is called with yIn for test==TRUE, and
+#' nFun is called with nIn for test==FALSE.
+#' Missing (NA) values in test return NA< without calling either yFun or nFun
+#' @param test an object which can be coerced to logical
+#' @param yFun,nFun Functions to be called when test evaluates to TRUE or FALSE respectively
+#' @param yIn,nIn Arguments for yFun and nFun. Recycled if necessary
+#' @details If you just want to return values, you can use the function \code{\link[base]{identity}}
+#' @examples
+#' stats <- list(a=NA,
+#'               b=list(time="1:00", speed=100))
+#' besttimes <- Lazyifelse(is.na(stats), identity, NA, function(x) {sapply(x, `[[`, i='time')}, stats)
+#' @export
+
+Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
+  out <- rep(NA, times=length(test))
+  if(length(test) %% length(yIn)!=0) warning('yIn recycled partially (test not a multiple of yIn')
+  if(length(test) %% length(nIn)!=0) warning('nIn recycled partially (test not a multiple of nIn')
+  yIn <- rep(yIn, length.out=length(test))
+  nIn <- rep(nIn, length.out=length(test))
+  out[!is.na(test) & test] <- yFun(yIn[!is.na(test) & test])
+  out[!is.na(test) & !test] <- nFun(nIn[!is.na(test) & !test])
 }
 
 
@@ -275,6 +303,10 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
     ga <- utils::getAnywhere(du['name'])
     return(ga$dups[ga$where==du['env']])
   }),]
+  allowed <- allowed$name[allowed$env=='any' | apply(allowed, 1, function(x) {
+    any(dupl$name[!duplicated(dupl$name)]==x['name'] & dupl$env[!duplicated(dupl$name)]==x['env'])
+  })]
+  dupl <- dupl[!dupl$name %in% allowed,]
   dupl <- dupl[duplicated(dupl$name) | duplicated(dupl$name, fromLast = TRUE),]
   if(nrow(dupl)==0) return(invisible(0))
   dupl$env <- sub('package:','',fixed=TRUE, dupl$env)
@@ -459,6 +491,20 @@ print.Date <- function (x, max = NULL, ...)
   invisible(x)
 }
 
+#' Customized stop, gives lines-numbers if called from script
+#'
+#' Same as base::stop(), but when called from a sourced script, it also output the filename and linenumber
+#' @param ... arguments passed on to base::stop()
+#' @export
+
+stop <- function(...) {
+  if(length(sys.call(-1))>0 && sys.call(-1)=='eval(ei, envir)' && sys.call(1)[[1]]=='source') {
+    base::stop('\nin ',strtrim(utils::getSrcFilename(sys.call(), full.names = TRUE), getOption('width')-20),' (line ',utils::getSrcLocation(sys.call()),'):\n  ', ..., call.=FALSE)
+  } else {
+    base::stop('in ',sys.call(-1),':\n  ', ...,call. = FALSE)
+  }
+}
+
 
 
 .onAttach <- function(libname, pkgname) {
@@ -467,6 +513,11 @@ print.Date <- function (x, max = NULL, ...)
       name=c('src', 'n', 'par','FunctionNameThatServesAsAnExample'),
       env=c('.GlobalEnv', '.GlobalEnv', '.GlobalEnv','any')))
   }
+  cma <- getOption('checkMasking_Allowed')
+  cma <- data.frame(lapply(cma, as.character), stringsAsFactors = FALSE)
+  cma[nrow(cma)+1,] <- c('stop','package:EmilMisc')
+  options(checkMasking_Allowed=data.frame(lapply(cma, as.factor)))
+  rm(cma)
   environment(write.table) <- environment(utils::write.table)
 }
 

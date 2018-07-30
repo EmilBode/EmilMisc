@@ -33,11 +33,11 @@ LazyOr is analogous, fun(b) only called if a is FALSE or NA
 Note that this may produce unexpected results if elements of fun(b) are not independent of each other, e.g. calling: \cr
 \code{
 nums <- 1:10
-nums%%2==0 & cumsum(nums)%%2==0
+nums \%\% 2==0 & cumsum(nums) \%\% 2==0
 }\cr\cr
 and\cr\cr
 \code{
-LazyAnd(nums%%2==0, nums, function(x) {cumsum(x)%%2==0})
+LazyAnd(nums \%\% 2==0, nums, function(x) {cumsum(x) \%\% 2==0})
 }\cr\cr
 gives different results, as \code{cumsum(1:10[c(2,4,6,8,10)]}) is called, instead of \code{cumsum(1:10)[c(2,4,6,8,10)]}, which produces different results
 }

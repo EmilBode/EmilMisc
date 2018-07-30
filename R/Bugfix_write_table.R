@@ -11,9 +11,10 @@
 #'                  b=I(data.frame(c="OtherVal",
 #'                  d='Four;Five;Six',
 #'                  e=4)))
+#' \dontshow{environment(write.table) <- environment(utils::write.table)}
 #' write.table(df, "~/Desktop/Tempfile.csv", quote = TRUE, col.names = NA,
 #'             sep = ";", dec = ",", qmethod = "double")
-#' # This fails for utils::write.table, in that case Four;Five;Six is unquoted, rendering the csv useless
+#' # This fails for utils::write.table, because Four;Five;Six is unquoted, rendering the csv useless
 #'
 #' @export
 write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
