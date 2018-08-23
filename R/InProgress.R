@@ -14,3 +14,4 @@ extractComments <- function(FileName, max=9, fromLine=1, ToLine=-1, tab='\t') {
   file <- gsub('\\\\t',tab,file)
   return(file)
 }
+

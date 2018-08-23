@@ -47,6 +47,7 @@ Excluded are:\cr
 }
 Furthermore, you can specify names that can be ignored (e.g. the name 'n' from dplyr::n gives lots of false positives if you assign n in .GlobalEnv)\cr
 See also 'allowed' in the arguments
+Checking only takes place for \emph{functions}, not for data-objects
 }
 \details{
 This function makes use of the global options "checkMasking_Allowed" and checkMasking_extraScripts:\cr

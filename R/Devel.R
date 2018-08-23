@@ -256,6 +256,7 @@ Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
 #'}
 #' Furthermore, you can specify names that can be ignored (e.g. the name 'n' from dplyr::n gives lots of false positives if you assign n in .GlobalEnv)\cr
 #' See also 'allowed' in the arguments
+#' Checking only takes place for \emph{functions}, not for data-objects
 #'
 #' @param scripts A character vector with filenames to check
 #' @param allowed A data.frame with often used functions, along with the package you intend to use with that, or "any".\cr
@@ -294,7 +295,7 @@ Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
 
 checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'), extrascripts=c(getOption('checkMasking_extraScripts')), functions=c(), packages=c('own')) {
   if(is.null(allowed) || is.na(allowed) || allowed=='') allowed <- data.frame()
-  allls <- sapply(search(), ls, sorted=FALSE)
+  allls <- sapply(search(), function(x) {as.character(utils::lsf.str(pos=x))})
   allls <- data.frame(name=unlist(allls, use.names = FALSE),
                       env=as.factor(unlist(sapply(names(allls), function(x) {rep(x, times=length(allls[[x]]))}))),
                       stringsAsFactors = FALSE, row.names = c())
@@ -506,8 +507,6 @@ stop <- function(...) {
   }
 }
 
-
-
 .onAttach <- function(libname, pkgname) {
   if(identical(NA, getOption('checkMasking_Allowed', default=NA))) {
     options(checkMasking_Allowed=data.frame(
@@ -517,7 +516,7 @@ stop <- function(...) {
   cma <- getOption('checkMasking_Allowed')
   cma <- data.frame(lapply(cma, as.character), stringsAsFactors = FALSE)
   cma[nrow(cma)+1,] <- c('stop','package:EmilMisc')
-  options(checkMasking_Allowed=data.frame(lapply(cma, as.factor)))
+  options(checkMasking_Allowed=cma)
   rm(cma)
   environment(write.table) <- environment(utils::write.table)
 }
