@@ -1,6 +1,6 @@
 Package: EmilMisc
 Title: Miscellaneous Functions I Found Useful
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: person("Emil", "Bode", email = "Emil.Bode@dans.knaw.nl", role = c("aut", "cre"))
 Description: Miscellanous functions I've written for personal use.
     Some are variations on common functions, but adapted to my preferences.
@@ -10,7 +10,8 @@ Imports:
     utils (>= 3.5.0),
     stats (>= 3.5.0)
 Suggests:
-    extrafont
+    extrafont,
+    stringdist (>= 0.9.5.1)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
