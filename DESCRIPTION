@@ -10,7 +10,8 @@ Imports:
     utils (>= 3.5.0),
     stats (>= 3.5.0)
 Suggests:
-    extrafont
+    extrafont,
+    stringdist (>= 0.9.5.1)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

@@ -18,17 +18,18 @@
 #' ~ limitMem + returnvalue bytes. 0 (default) means unlimited, otherwise size in bytes.
 #' @param returnAs comparable to simplify in sapply: should result be returned as a list or an array? \cr
 #' "array" fills any non-matches with \emph{nomatch}, so it always returns an array (even when sapply wouldn't)
-#' @return For returnAs=="list", a list of length(x), and elements of length between length(nomatch) and \emph{maxmatch},
+#' @return For returnAs=="list", a list of length(x), with elements of length between length(nomatch) and \emph{maxmatch},
 #' with indices of closest matches in table. \cr\cr
 #' For returnAs=="array", an array of length(x) columns and \emph{maxmatch} rows (even if no elements have that many matches).
-#' Non-matches are filled in with \emph{nomatch}.
+#' Non-matches are filled in with \emph{nomatch}.\cr\cr
+#' In both cases, for ties the first match gets priority.
 #' @seealso \code{\link[stringdist]{amatch}}
 #'
 #' @examples
 #' set.seed(1)
 #' x <- replicate(paste(letters[ceiling(runif(n = 20)*26)], collapse=''), n = 50)
 #' table <- replicate(paste(letters[ceiling(runif(n = 20)*26)], collapse=''), n = 200)
-#' normal_amatch <- amatch(x, table, method='jw', p=.1, maxDist=.5)
+#' normal_amatch <- stringdist::amatch(x, table, method='jw', p=.1, maxDist=.5)
 #' multi_match <- mamatch(x, table, method='jw', p=.1, maxDist = .5, maxmatch=10, returnAs='array')
 #' print(identical(normal_amatch, multi_match[1,]))
 #' # What do the closest matches for number 1 look like?
