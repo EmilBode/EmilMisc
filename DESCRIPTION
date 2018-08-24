@@ -8,7 +8,8 @@ Description: Miscellanous functions I've written for personal use.
 Depends: R (>= 3.5.0)
 Imports:
     utils (>= 3.5.0),
-    stats (>= 3.5.0)
+    stats (>= 3.5.0),
+    fastmatch (>= 1.1-0)
 Suggests:
     extrafont,
     stringdist (>= 0.9.5.1)

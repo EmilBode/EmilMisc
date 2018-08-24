@@ -8,7 +8,8 @@ mamatch(x, table, nomatch = NA, matchNA = TRUE, method = c("osa", "lv",
   "dl", "hamming", "lcs", "qgram", "cosine", "jaccard", "jw", "soundex"),
   useBytes = FALSE, weight = c(d = 1, i = 1, s = 1, t = 1), maxDist = 0.1,
   q = 1, p = 0, bt = 0, nthread = getOption("sd_num_thread"),
-  maxmatch = 10, limitMem = 0, returnAs = c("array", "list"))
+  maxmatch = 10, limitMem = 0, returnAs = c("matrix", "list"),
+  dupls = TRUE)
 }
 \arguments{
 \item{x, table, matchNA, method, useBytes, weight, maxDist, q, p, bt, nthread}{See \code{\link[stringdist]{amatch}}}
@@ -17,18 +18,26 @@ mamatch(x, table, nomatch = NA, matchNA = TRUE, method = c("osa", "lv",
 
 \item{maxmatch}{Maximum number of matches to return. \cr Capped at length(table)}
 
-\item{limitMem}{Limit memory usage to approx. this many bytes, plus amount needed for return value. \cr
-Internally, this script calls stringdistmatrix, which means potentially a large amount of memory is needed
-(length(x) X length(table) X 8 bytes). You can provide this parameter to chunk processing, limiting memory usage to
-~ limitMem + returnvalue bytes. 0 (default) means unlimited, otherwise size in bytes.}
+\item{limitMem}{Limit memory usage. For large x and table, a lot of memory is needed for the matrix with distances.
+(Internally, this script calls stringdistmatrix, which means a matrix of \code{length(x) * length(table) * 8} bytes.\cr
+You can provide this parameter to chunk processing, with matrices of
+~ limitMem bytes. 0 (default) means unlimited, otherwise size in bytes. \cr
+Note that this is not all the needed memory, but for large x and table, the size of the matrix is the dominant factor.}
 
-\item{returnAs}{comparable to simplify in sapply: should result be returned as a list or an array? \cr
-"array" fills any non-matches with \emph{nomatch}, so it always returns an array (even when sapply wouldn't)}
+\item{returnAs}{comparable to simplify in sapply: should result be returned as a list or an matrix? \cr
+"matrix" fills any non-matches with \emph{nomatch}, so it always returns a matrix (even when sapply wouldn't)}
+
+\item{dupls}{Are there possibly duplicates present? Decides what kind of algorithm is used.\cr
+if \code{TRUE}, only the distance between the unique values are calculated, but more overhead is used to return the mapping to the original values.\cr
+if \code{FALSE}, all distances are calculated, which takes longer if duplicates are present. But there is less overhead.\cr\cr
+Note that the results may differ in detail in case of ties. To be precise: for dupls==TRUE, indices equal to a first match are returned before differing indices, e.g:\cr
+\code{mamatch('abcde', c('abcd1','abcd2','abcd3','xxx','xxx','abcd1'), method='jw', p=.1)[,1]}\cr
+returns c(1,2,3,6,NA,NA) for dupls==FALSE, and c(1,2,6,3,NA,NA) for dupls==TRUE, as all are tied}
 }
 \value{
 For returnAs=="list", a list of length(x), with elements of length between length(nomatch) and \emph{maxmatch},
 with indices of closest matches in table. \cr\cr
-For returnAs=="array", an array of length(x) columns and \emph{maxmatch} rows (even if no elements have that many matches).
+For returnAs=="matrix", an matrix of length(x) columns and \emph{maxmatch} rows (even if no elements have that many matches).
 Non-matches are filled in with \emph{nomatch}.\cr\cr
 In both cases, for ties the first match gets priority.
 }
@@ -47,7 +56,7 @@ set.seed(1)
 x <- replicate(paste(letters[ceiling(runif(n = 20)*26)], collapse=''), n = 50)
 table <- replicate(paste(letters[ceiling(runif(n = 20)*26)], collapse=''), n = 200)
 normal_amatch <- stringdist::amatch(x, table, method='jw', p=.1, maxDist=.5)
-multi_match <- mamatch(x, table, method='jw', p=.1, maxDist = .5, maxmatch=10, returnAs='array')
+multi_match <- mamatch(x, table, method='jw', p=.1, maxDist = .5, maxmatch=10, returnAs='matrix')
 print(identical(normal_amatch, multi_match[1,]))
 # What do the closest matches for number 1 look like?
 print(x[1])
