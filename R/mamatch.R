@@ -69,9 +69,12 @@ mamatch <- function (x, table, nomatch = NA, matchNA = TRUE, method = c("osa", "
     mat <- stringdist::stringdistmatrix(a=table, b=x[wh], method=method, useBytes=useBytes, weight=weight, q=q, p=p, bt=bt, useNames='none', nthread=nthread)
     ret <- lapply(1:ncol(mat), function(j) {
       col <- mat[,j]
-      ord <- sort(col, partial=1:maxmatch)[1:maxmatch]
-      idcs <- lapply(ord[ord<=maxDist], function(o) {which(col==o)})
+      ord <- order(col)
+      idcs <- which(ord<=maxmatch & col[ord]<=maxDist)
+      ord <- ord[ord<=maxmatch & col[ord]<=maxDist]
+      idcs <- idcs[order(ord)]
       idcs <- as.integer(unique(unlist(idcs)))[1:maxmatch] # As.integer to force NULLs to integer(0), and result to NAs
+      return(idcs)
     })
     if(returnAs=='matrix') {
       ret <- simplify2array(ret)
