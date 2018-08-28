@@ -70,11 +70,8 @@ mamatch <- function (x, table, nomatch = NA, matchNA = TRUE, method = c("osa", "
     ret <- lapply(1:ncol(mat), function(j) {
       col <- mat[,j]
       ord <- order(col)
-      idcs <- which(ord<=maxmatch & col[ord]<=maxDist)
-      ord <- ord[ord<=maxmatch & col[ord]<=maxDist]
-      idcs <- idcs[order(ord)]
-      idcs <- as.integer(unique(unlist(idcs)))[1:maxmatch] # As.integer to force NULLs to integer(0), and result to NAs
-      return(idcs)
+      ord <- ord[1:maxmatch][col[ord[1:maxmatch]]<=maxDist]
+      return(as.integer(unique(unlist(ord)))[1:maxmatch]) # As.integer to force NULLs to integer(0), and result to NAs
     })
     if(returnAs=='matrix') {
       ret <- simplify2array(ret)
