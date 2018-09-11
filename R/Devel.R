@@ -289,7 +289,12 @@ Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
 #'         In this case, the script drops 'I wouldn' and ',duplicateFunction(),' and 't!'.\cr
 #'         Or #'s as part of a string, as everything after # is ignored: gsub('#','',duplicateFunction(text)) passes.\cr
 #' \item Libraries that have not yet been loaded are not checked! Advise is to specify all needed libraries first, then run 'checkMasking'.
-#' \item Funcions having their own environments may end up calling other functions then those first in the search path. This may cause both false positives and false negatives
+#' \item Functions having their own environments may end up calling other functions then those first in the search path. This may cause both false positives and false negatives
+#' \item If a function is marked \code{\link[base]{.Deprecated}} or \code{\link[base]{.Defunct}}, an attempt is made to let it pass. \cr
+#'         The script looks for the "new" argument in .Deprecated or .Defunct. If there is none, no package is provided, or there is
+#'         a replacement with a different name, the script lets it pass. If a package is provided, the script checks whether this package
+#'         is higher on the search-list. \cr
+#'         And the script of course only allows these functions to \emph{be} masked, not to mask others.
 #'}
 #' @export
 
@@ -304,7 +309,29 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
   dupl <- dupl[!apply(dupl, 1, function(du) {
     ga <- utils::getAnywhere(du['name'])
     return(ga$dups[ga$where==du['env']])
-  }),]
+  }),] # Identical according to getAnywhere
+  dupl <- dupl[!apply(dupl, 1, function(x) {
+    if(x[['name']]=='future_lapply') browser()
+    if(x[['name']]=='checkMasking') return(TRUE)
+    src <- utils::capture.output(get(x['name'], pos=x['env']))
+    defp <- src[grepl('^ *(\\.Defunct)|(\\.Deprecated)', src)]
+    if(!length(defp)) return(FALSE)
+    defp <- defp[[1]]
+    prs <- parse(text=defp)
+    if(is.null(names(prs[[1]]))) {
+      newfun <- prs[[1]][[2]]
+    } else {
+      newfun <- prs[[1]][-1][names(prs[[1]][-1])=='new'][[1]]
+      if(is.null(newfun)) newfun <- prs[[1]][-1][names(prs[[1]][-1])==''][[1]]
+    }
+    if(!is.null(newfun) && !is.character(newfun) || length(newfun)>1) stop('A function calls .Defunct or .Deprecated, without clear arguments')
+    if(!is.null(newfun)) newfun <- strsplit(newfun, split='::')[[1]]
+    if(length(newfun)<2 || newfun[[2]]!=x[['name']]) {
+      return(paste0(x, collapse='') %in% do.call(paste0, dupl[duplicated(dupl$name),]))
+    } else {
+      return(paste0('package:',newfun[[1]]) %in% search()[1:which(search()==x[['env']])])
+    }
+  }),] # Filter .Defunct and .Deprecated
   allowed <- allowed$name[allowed$env=='any' | apply(allowed, 1, function(x) {
     any(dupl$name[!duplicated(dupl$name)]==x['name'] & dupl$env[!duplicated(dupl$name)]==x['env'])
   })]
@@ -497,13 +524,20 @@ print.Date <- function (x, max = NULL, ...)
 #'
 #' Same as base::stop(), but when called from a sourced script, it also output the filename and linenumber
 #' @param ... arguments passed on to base::stop()
+#' @param quiet Useful for controlled stopping from a script. \cr
+#' If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.
 #' @export
 
-stop <- function(...) {
+stop <- function(..., quiet=FALSE) {
+  if(quiet) {
+    cat(...)
+    opt <- options(show.error.messages = FALSE, error=NULL)
+    on.exit(options(opt))
+  }
   if(length(sys.call(-1))>0 && sys.call(-1)=='eval(ei, envir)' && sys.call(1)[[1]]=='source') {
-    base::stop('\nin ',strtrim(utils::getSrcFilename(sys.call(), full.names = TRUE), getOption('width')-20),' (line ',utils::getSrcLocation(sys.call()),'):\n  ', ..., call.=FALSE)
+    base::stop('\rError in ',strtrim(utils::getSrcFilename(sys.call(), full.names = TRUE), getOption('width')-20),' (line ',utils::getSrcLocation(sys.call()),'):\n  ', ..., call.=FALSE)
   } else {
-    base::stop('in ',sys.call(-1),':\n  ', ...,call. = FALSE)
+    base::stop('\rError in ',deparse(sys.call(-1)[[1]])[[1]],':\n  ', ...,call. = FALSE)
   }
 }
 
@@ -521,6 +555,36 @@ stop <- function(...) {
   environment(write.table) <- environment(utils::write.table)
 }
 
+#' Modulo-operator with near-equality
+#'
+#' The \code{\link[base:Arithmetic]{`\%\%`}} operator calculates the modulo, but sometimes has rounding errors, e.g. "\code{(9.1/.1) \%\% 1}" gives ~ 1, instead of 0.\cr
+#' Comparable to what all.equal does, this operator has some tolerance for small rounding errors.\cr
+#' If the answer would be equal to the divisor within a small tolerance, 0 is returned instead.
+#'
+#' For integer x and y, the normal \%\%-operator is used
+#'
+#' @usage `\%mod\%`(x, y, tolerance = sqrt(.Machine$double.eps))
+#' x \%mod\% y
+#' @param x,y numeric vectors, similar to those passed on to \%\%
+#' @param tolerance numeric, maximum difference, see \code{\link[base]{all.equal}}. The default is ~ \code{1.5e-8}
+#' @return identical to the result for \%\%, unless the answer would be really close to y, in which case 0 is returned
+#' @note To specify tolerance, use the call \code{`\%mod\%`(x,y,tolerance)}
+#' @note The precedence for \code{\%mod\%} is the same as that for \code{\%\%}
+#'
+#' @name mod
+#' @rdname mod
+#'
+#' @export
+`%mod%` <- function(x,y, tolerance = sqrt(.Machine$double.eps)) {
+  stopifnot(is.numeric(x), is.numeric(y), is.numeric(tolerance),
+            !is.na(tolerance), length(tolerance)==1, tolerance>=0)
+  if(is.integer(x) && is.integer(y)) {
+    return(x %% y)
+  } else {
+    ans <- x %% y
+    return(ifelse(abs(ans-y)<tolerance | abs(ans)<tolerance, 0, ans))
+  }
+}
 
 
 

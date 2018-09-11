@@ -4,10 +4,13 @@
 \alias{stop}
 \title{Customized stop, gives lines-numbers if called from script}
 \usage{
-stop(...)
+stop(..., quiet = FALSE)
 }
 \arguments{
 \item{...}{arguments passed on to base::stop()}
+
+\item{quiet}{Useful for controlled stopping from a script. \cr
+If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.}
 }
 \description{
 Same as base::stop(), but when called from a sourced script, it also output the filename and linenumber

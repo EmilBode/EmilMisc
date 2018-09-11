@@ -4,12 +4,12 @@
 \alias{mamatch}
 \title{Extension to stringdist::amatch, returning multiple matched}
 \usage{
-mamatch(x, table, nomatch = NA, matchNA = TRUE, method = c("osa", "lv",
-  "dl", "hamming", "lcs", "qgram", "cosine", "jaccard", "jw", "soundex"),
-  useBytes = FALSE, weight = c(d = 1, i = 1, s = 1, t = 1), maxDist = 0.1,
-  q = 1, p = 0, bt = 0, nthread = getOption("sd_num_thread"),
-  maxmatch = 10, limitMem = 0, returnAs = c("matrix", "list"),
-  dupls = TRUE)
+mamatch(x, table, nomatch = NA, matchNA = TRUE, method = c("osa",
+  "lv", "dl", "hamming", "lcs", "qgram", "cosine", "jaccard", "jw",
+  "soundex"), useBytes = FALSE, weight = c(d = 1, i = 1, s = 1, t = 1),
+  maxDist = 0.1, q = 1, p = 0, bt = 0,
+  nthread = getOption("sd_num_thread"), maxmatch = 10, limitMem = 0,
+  returnAs = c("matrix", "list"), dupls = TRUE)
 }
 \arguments{
 \item{x, table, matchNA, method, useBytes, weight, maxDist, q, p, bt, nthread}{See \code{\link[stringdist]{amatch}}}

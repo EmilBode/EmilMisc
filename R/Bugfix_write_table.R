@@ -5,7 +5,8 @@
 #' at which "columns" are character of factor, and marks these for quoting, then flattens the structure to a matrix.
 #' This functions also inspects columns that are data.frames or comparable. See the example for the difference.
 #'
-#' @param x,file,append,quote,sep,eol,na,dec,row.names,col.names,qmethod,fileEncoding See \code{\link[utils]{write.table}}
+#' @param x,file,append,quote,sep,eol,na,dec See \code{\link[utils]{write.table}}
+#' @param row.names,col.names,qmethod,fileEncoding See \code{\link[utils]{write.table}}
 #' @examples
 #' df <- data.frame(a='One;Two;Three',
 #'                  b=I(data.frame(c="OtherVal",
@@ -15,7 +16,6 @@
 #' write.table(df, "~/Desktop/Tempfile.csv", quote = TRUE, col.names = NA,
 #'             sep = ";", dec = ",", qmethod = "double")
 #' # This fails for utils::write.table, because Four;Five;Six is unquoted, rendering the csv useless
-#'
 #' @export
 write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
                          eol = "\n", na = "NA", dec = ".", row.names = TRUE, col.names = TRUE,
@@ -141,7 +141,7 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
       else z
     })
   }
-  invisible(.External2(C_writetable, x, file, nrow(x), p,
+  invisible(.External2(utils:::C_writetable, x, file, nrow(x), p,
                        rnames, sep, eol, na, dec, as.integer(quote), qmethod !=
                          "double"))
 }

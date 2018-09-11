@@ -4,9 +4,10 @@
 \alias{checkMasking}
 \title{Check for possible masking problems in saved .R-files}
 \usage{
-checkMasking(scripts = c(), allowed = getOption("checkMasking_Allowed"),
-  extrascripts = c(getOption("checkMasking_extraScripts")), functions = c(),
-  packages = c("own"))
+checkMasking(scripts = c(),
+  allowed = getOption("checkMasking_Allowed"),
+  extrascripts = c(getOption("checkMasking_extraScripts")),
+  functions = c(), packages = c("own"))
 }
 \arguments{
 \item{scripts}{A character vector with filenames to check}
@@ -66,6 +67,11 @@ This function may fail to notice problems if it doens't recognize function-names
         In this case, the script drops 'I wouldn' and ',duplicateFunction(),' and 't!'.\cr
         Or #'s as part of a string, as everything after # is ignored: gsub('#','',duplicateFunction(text)) passes.\cr
 \item Libraries that have not yet been loaded are not checked! Advise is to specify all needed libraries first, then run 'checkMasking'.
-\item Funcions having their own environments may end up calling other functions then those first in the search path. This may cause both false positives and false negatives
+\item Functions having their own environments may end up calling other functions then those first in the search path. This may cause both false positives and false negatives
+\item If a function is marked \code{\link[base]{.Deprecated}} or \code{\link[base]{.Defunct}}, an attempt is made to let it pass. \cr
+        The script looks for the "new" argument in .Deprecated or .Defunct. If there is none, no package is provided, or there is
+        a replacement with a different name, the script lets it pass. If a package is provided, the script checks whether this package
+        is higher on the search-list. \cr
+        And the script of course only allows these functions to \emph{be} masked, not to mask others.
 }
 }

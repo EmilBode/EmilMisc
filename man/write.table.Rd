@@ -6,10 +6,13 @@
 \usage{
 write.table(x, file = "", append = FALSE, quote = TRUE, sep = " ",
   eol = "\\n", na = "NA", dec = ".", row.names = TRUE,
-  col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
+  col.names = TRUE, qmethod = c("escape", "double"),
+  fileEncoding = "")
 }
 \arguments{
-\item{x, file, append, quote, sep, eol, na, dec, row.names, col.names, qmethod, fileEncoding}{See \code{\link[utils]{write.table}}}
+\item{x, file, append, quote, sep, eol, na, dec}{See \code{\link[utils]{write.table}}}
+
+\item{row.names, col.names, qmethod, fileEncoding}{See \code{\link[utils]{write.table}}}
 }
 \description{
 Bugfix for the standard utils::write.table-function, copied from the standard-function and adapted.
@@ -26,5 +29,4 @@ df <- data.frame(a='One;Two;Three',
 write.table(df, "~/Desktop/Tempfile.csv", quote = TRUE, col.names = NA,
             sep = ";", dec = ",", qmethod = "double")
 # This fails for utils::write.table, because Four;Five;Six is unquoted, rendering the csv useless
-
 }
