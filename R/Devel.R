@@ -131,6 +131,8 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' Just implemented because I've found myself having to go back too often.
 #'
 #' @param x,y Used as in !(x \%in\% y)
+#' @seealso /code{/link[base]{+}}, /code{/link[base]{-}}, /code{/link[base]{/}}, /code{/link[base]{%in%}},
+#'  /code{/link[base]{?}}, /code{/link[base]{::}}, /code{/link[base]{:}}, /code{/link[base]{!}},
 #'
 #' @name not-in
 #' @rdname not-in
