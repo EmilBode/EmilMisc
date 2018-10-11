@@ -127,7 +127,7 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' Value not matching
 #'
 #' Simple function, element x is not in y.\cr
-#' x \%!in\% y is the same as !x \%in\% y\cr
+#' \code{x \%!in\% y} is the same as \code{!x \link[base]{\%in\%} y}\cr
 #' Just implemented because I've found myself having to go back too often.
 #'
 #' @param x,y Used as in !(x \%in\% y)
@@ -586,14 +586,29 @@ stop <- function(..., quiet=FALSE) {
   }
 }
 
+#' Rewrite of args(), which also returns something workable for all primitives
+#'
+#' The function \code{\link[base]{args}} may return NULL for some primitives, e.g. `[`.
+#' This function checks for that, and in that case returns the most general function possible:
+#' \code{function(...) NULL}
+#' Otherwise the return is identical
+#'
+#' @param name A function, or a character string with the name of a function (which is found using the scope of the caller).
+#' @return Identical as that of \code{\link[base]{args}}, except when called with a primitive, and args() returns NULL.
+#' In that case, an empty function
+#'
+#' @export
 
-
-
-
-
-
-
-
+args <- function(name) {
+  if(is.character(name)) name <- get(name, parent.frame(), mode='function')
+  if(!is.function(name)) return(NULL)
+  ret <- base::args(name)
+  if(is.null(ret) && is.primitive(name)) {
+    ret <- function(...) NULL
+    environment(ret) <- parent.frame()
+  }
+  return(ret)
+}
 
 
 

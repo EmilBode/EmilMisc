@@ -12,6 +12,6 @@ x \%!in\% y
 }
 \description{
 Simple function, element x is not in y.\cr
-x \%!in\% y is the same as !x \%in\% y\cr
+\code{x \%!in\% y} is the same as \code{!x \link[base]{\%in\%} y}\cr
 Just implemented because I've found myself having to go back too often.
 }
