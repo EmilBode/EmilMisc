@@ -1,7 +1,7 @@
 Package: EmilMisc
 Title: Miscellaneous Functions I Found Useful
 Version: 0.1.0
-Authors@R: person("Emil", "Bode", email = "Emil.Bode@dans.knaw.nl", role = c("aut", "cre"))
+Authors@R: person("Emil", "Bode", email = "BodeEmil@gmail.com", role = c("aut", "cre"))
 Description: Miscellanous functions I've written for personal use.
     Some are variations on common functions, but adapted to my preferences.
     To be extended in the future.

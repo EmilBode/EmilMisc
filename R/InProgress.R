@@ -15,187 +15,242 @@ extractComments <- function(FileName, max=9, fromLine=1, ToLine=-1, tab='\t') {
   return(file)
 }
 
-# Try to make a readline that continues after a set time
-readline_time <- function(prompt, timeout = 3600, precision=.1, end=NA) {
-  if(!require(future)) stop()
-  if(timeout==0) return(readline(prompt))
-  funenv <- environment()
-  timer <- timeout
-  cat(prompt)
-  ansfun <- function() {
-    tryCatch({
-      assign('my_in', stdin(), pos=funenv)
-      temp <- readLines(my_in, n=1)
-      writeLines(temp, tempfile(tmpdir = '~/Desktop/'))
-      return(temp)
-      }, error=function(e) return(NA))
-  }
-  while(timer>0 && (timer==timeout || !resolved(ans) || length(value(ans))==0 || is.na(value(ans)))) {
-    ans <- future(ansfun(), lazy=TRUE) %plan% multiprocess
-    Sys.sleep(precision)
-    timer <- timer-precision
-    if(exists('my_in')) rm(my_in)
-  }
-  if(timer>0 && resolved(ans)) return(value(ans)) else return(end)
-}
-readline_time <- function(prompt, timeout = 3600, precision=.1, end=NA) {
-  if(timeout==0) return(readline(prompt))
-  timer <- timeout
-  my_in <- file('stdin')
-  open(my_in, blocking=FALSE)
-  ans <- readLines(my_in, n=1)
-  while(timer>0 && !length(ans)) {
-    Sys.sleep(precision)
-    timer <- timer-precision
-    ans <- readLines(my_in, n=1)
-  }
-  close(my_in)
-  return(ans)
-}
-waitForKey <- function(message='Continuing in {n} seconds, or press any key.', time=10, counter=.5, precision=.01) {
-  if(!is.null(message)) message <- strsplit(message, split='\\{n\\}')[[1]]
-  my_in <- file('stdin')
-  open(my_in, blocking=FALSE)
-  ans <- readLines(my_in, n=1)
-  while(time>0 && !length(ans)) {
-    if(!is.null(message) && round(time/counter, digits = 3) %% 1L==0L) {
-      cat(message[1], format(round(time, digits=4), width=5, scientific = F), message[2], '\r', sep = '')
+if (FALSE) { # Too experimental
+
+  # envpush and envpop: simulate calling stack
+  #' Simulate calling of functions: push and pop stack
+  #'
+  #' Simulate calling of functions and returning, for debugging purposes.\cr\cr
+  #' It is often useful to go through functions step-by-step, such as can be done with browser()\cr
+  #' However, when doing this, you can't edit the source code as you go.
+  #' Therefore these functions make it possible to run parts of your code, and simulate the calling of functions.
+  #' envpush simulates adding a layer to the stack: all variables in the "from"-environment are stored in a temporary environment,
+  #' so it looks like you're working in a new layer.\cr
+  #' envpop() reverses this operation, optionally mapping a return value to a new value in your environment\cr
+  #' return() overrides the normal return, but is only used when called from the top-level, and when 'popping' environments are available.\cr
+  #' popall() is for quickly returning to the top-level, without returning anything
+  #'
+  #' Some other functions are modified for simulating being in another layer:
+  #' \itemize{
+  #'   \item Arguments that are not specified are initialized to their default values, but with a "missing" attribute set to TRUE.\cr
+  #'   The modified missing()-function also checks for this attribute
+  #'   \item The "<<-"-operator no longer defaults to the gloabl environment, but to what was originally the global environment
+  #' }
+  #'
+  #'
+  #' Some care is still needed when working with '...', as some effort is made to mimic the right behaviour, but this hasn't been tested
+  #' thoroughly.
+  #'
+  #' @param mycall A call to use, for which execution is simulated.\cr
+  #' See examples
+  #' @param from,to Environment to push from, and to pop back to. \cr
+  #' This means all values are copied from/to this environment, to/from a temporary copy-environment, a parent from the new clean environment. \cr
+  #' Defaults to the global environment, caution is needed for other environments.
+  #' @param envname Name for the temporary environment to store the current scope. NA means default, the name as stored in getOption('envpushnames'),
+  #' along with an incremental counter
+  #' @param check Before popping, do we check if the parent.env() is one of the temporary-names ones. Useful to prevent popenv() from screwing with your workspace,
+  #' set to FALSE when changing environment-names
+  #' @param retvar Should a return variable be mapped to a new variable in the environment we pop back to?\cr
+  #' For envpop(): A variable with the first name is assigned to the second name\cr
+  #' For return(): The returned \emph{value} is assigned to a variable with this name
+  #' @param value A value to assign to a variable with the name given by \code{retvar}
+  #'
+  #' @examples
+  #' myfun <- function(x, y, someopt=T, ...) {paste0(x, y, z)}
+  #' a <- 2
+  #' y <- 14
+  #' z <- 17
+  #' envpush(myfun(a))
+  #' # This causes all content of the global environment to be assigned to a new environment, the global environment to be cleared,
+  #' # and the new environment to be set as the parent of the global environment (the new is 'squeezed' between).
+  #' # And x is set to the value of a, y is set to missing, someopt to TRUE, and ... to missing as well.
+  #' For completeness, someopt is also given the attribute 'missing', set to TRUE, which causes missing(someopt) to return TRUE as well
+  #'
+  envpush <- function(mycall=NULL, from=.GlobalEnv, envname=NA) {
+    mycall <- substitute(mycall)
+    mycall <- capture.output(mycall)
+    stopifnot(is.null(mycall) || is.character(mycall) || is.call(mycall) || is.name(mycall) &&
+                is.environment(from) && is.na(envname) || is.character(envname))
+    if(is.na(envname)) {
+      n <- 1
+      envname <- paste0(getOption('envpushnames'), n)
+      srch <- search()
+      while(envname %in% srch) {
+        n <- n+1
+        envname <- paste0(getOption('envpushnames'), n)
+      }
     }
-    Sys.sleep(precision)
-    time <- time-precision
-    ans <- readLines(my_in, n=1)
+    if(is.name(mycall)) mycall <- eval(mycall)
+    if(is.character(mycall)) mycall <- parse(text=mycall)[[1]]
+    newenv <- list2env(as.list(from), parent=parent.env(from))
+    attr(newenv, 'name') <- envname
+    if(!is.null(mycall)) {
+      if(is.primitive(eval(mycall[[1]]))) {
+        message('Argument matching with primitives may cause problems')
+        fullcall <- mycall
+        nms <- formalArgs(args(eval(mycall[[1]], envir=parent.frame())))
+        if(length(nms)==length(mycall)-1) {
+          names(fullcall) <- c('', nms)
+        } else if(length(wh <- which(nms=='...'))) {
+          fullcall <- as.list(fullcall)
+          fullcall <- c(fullcall[[1]],
+                        fullcall[seq_len(wh-1)+1],
+                        `...`=list(fullcall[seq_len(length(mycall)-length(nms))+wh]),
+                        fullcall[seq_len(length(nms)-wh)+length(fullcall)-wh])
+          names(fullcall) <- c('', nms)
+          fullcall <- as.call(fullcall)
+          dots <- fullcall[['...']]
+        } else {
+          stop('Problem in argument matching')
+        }
+      } else {
+        fullcall <- match.call(definition=eval(mycall[[1]]), mycall, envir=from, expand.dots = FALSE)
+      }
+      for(nm in names(fullcall)[-1]) {
+        tryCatch({
+          assign(nm, eval(fullcall[[nm]], newenv), from, inherits=FALSE)
+          if(nm=='...') assign('dots', eval(fullcall[[nm]], newenv), from, inherits=FALSE)
+        }, error=function(e) {
+          if(e$message=="argument is missing, with no default") {
+            assign(nm, fullcall[[nm]], from, inherits=FALSE)
+            if(nm=='...') assign('dots', fullcall[[nm]], from, inherits=FALSE)
+          } else {
+            base::stop('\rError in envpush(', deparse(mycall), '): ', e$message, call. = FALSE)
+          }
+        })
+      }
+      miss <- formals(eval(fullcall[[1]], newenv))
+      miss <- miss[names(miss) %!in% names(fullcall)[-1]]
+      for(nm in names(miss)) {
+        tryCatch({
+          val <- eval(miss[[nm]], from)
+          if(is.null(val)) {
+            assign('.missingNULLs', c(get0('.missingNULLs', from, inherits=FALSE), nm), from, inherits=FALSE)
+          } else {
+            attr(val, 'missing') <- TRUE
+          }
+          assign(nm, val, from, inherits=FALSE)
+          if(nm=='...') assign('dots', val, from, inherits=FALSE)
+        },
+        error=function(e) {
+          if(e$message=="argument is missing, with no default") {
+            assign(nm, miss[[nm]], from, inherits=FALSE)
+            if(nm=='...') assign('dots', miss[[nm]], from, inherits=FALSE)
+          } else {
+            stop('Unexpected error')
+          }
+        })
+      }
+      do.call(rm, list(list=ls(from, all.names=TRUE)[ls(from, all.names=TRUE) %!in% c(names(fullcall), names(miss), 'dots', '.missingNULLs')], pos=from))
+    } else {
+      do.call(rm, list(list=ls(from, all.names=TRUE), pos=from))
+    }
+    parent.env(from) <- environment(eval(mycall[[1]]))
+    assign('parent.frame', function(n) {
+      if(n>1) {
+        return(get('parent.frame', newenv)(n-1))
+      } else {
+        return(newenv)
+      }
+    }, from, inherits=FALSE)
+    if(!exists('nargs',from, inherits=FALSE)) {
+      assign("nargs", function() {
+        return(length(mycall)-1)
+      }, from, inherits = FALSE)
+    }
+    if(!exists('<<-', from, inherits=FALSE)) {
+      assign("<<-", function(x, value) {
+        if(exists(as.character(substitute(x)), parent.env(parent.frame()), inherits=TRUE)) {
+          do.call(base::`<<-`, list(substitute(x), value), envir = parent.frame())
+        } else {
+          assign(as.character(substitute(x)), value, paste0(getOption('envpushnames'), 1), inherits = FALSE)
+        }
+      }, from, inherits = FALSE)
+    }
+    return(invisible(0))
   }
-  close(my_in)
-  return(invisible(0))
+  envpop <- function(to=.GlobalEnv, check=TRUE, retvar=c('ret', 'ret')) {
+    if(check && !grepl(paste0('^',getOption('envpushnames'),'[0-9]+$'), environmentName(parent.env(to)))) stop('Unexpected top-environment-name')
+    retmiss <- missing(retvar)
+    if(length(retvar)) {
+      if(retvar[1] %in% ls(to)) {
+        assign(retvar[2], get(retvar[1], to, inherits=FALSE))
+      } else if(!retmiss) {
+        warning('Return-variable not found')
+      }
+    }
+    rm(list=ls(to, all.names=TRUE)[ls(to, all.names=TRUE)!=retvar[2]], pos=to)
+    for(v in ls(parent.env(to), all.names = TRUE)) {
+      if(do.call(missing, list(v), envir=parent.env(to))) {
+        assign(v, formals(base::`-.Date`)[[1]], pos=to) # The first base-function with a missing argument
+      } else {
+        assign(v, get(v, parent.env(to)), pos=to)
+      }
+    }
+    parent.env(to) <- parent.env(parent.env(to))
+    base::return(invisible(0))
+  }
+  return <- function(value, retvar='ret') {
+    if(missing(value)) value <- NULL else value <- withVisible(value)
+    if(length(sys.calls())==1 && any(grepl(paste0('^',getOption('envpushnames'), '[0-9]+$'), search()))) {
+      if(!is.null(retvar))
+        assign(retvar, value$value, parent.env(parent.frame()))
+      envpop(to=parent.frame(), retvar=c())
+      cat('Popping!\n')
+    } else if(is.null(value) || value$visible) {
+      do.call(base::return, list(value$value), envir=parent.frame())
+    } else {
+      do.call(function(value) {base::return(invisible(value))}, list(value$value), envir=parent.frame())
+    }
+  }
+  popall <- function(to=.GlobalEnv) {
+    while(grepl(getOption('envpushnames'), environmentName(parent.env(to)), fixed=TRUE)) {
+      if(exists('ret', where = to, inherits=FALSE)) rm('ret', pos = to, inherits=FALSE)
+      envpop(to)
+    }
+  }
+  missing <- function(var) {
+    if(length(sys.calls())>1) {
+      do.call(base::missing, list(substitute(var)), envir = parent.frame())
+    } else if(base::missing(var)) {
+      return(TRUE)
+    } else if(!is.null(attr(var, 'missing'))) {
+      base::return(attr(var, 'missing'))
+    } else if(!is.null(var)) {
+      base::return(FALSE)
+    } else {
+      base::return(as.character(substitute(var)) %in% get0('.missingNULLs', parent.frame(), inherits=FALSE))
+    }
+  }
 }
 
 
-model.frame.default <- function (formula, data = NULL, subset = NULL, na.action = na.fail,
-          drop.unused.levels = FALSE, xlev = NULL, ...)
-{
-  possible_newdata <- !missing(data) && is.data.frame(data) &&
-    identical(substitute(data), quote(newdata)) && (nr <- nrow(data)) >
-    0
-  if (!missing(formula) && nargs() == 1 && is.list(formula) &&
-      !is.null(m <- formula$model))
-    return(m)
-  if (!missing(formula) && nargs() == 1 && is.list(formula) &&
-      all(c("terms", "call") %in% names(formula))) {
-    fcall <- formula$call
-    m <- match(c("formula", "data", "subset", "weights",
-                 "na.action"), names(fcall), 0)
-    fcall <- fcall[c(1, m)]
-    fcall[[1L]] <- quote(stats::model.frame)
-    env <- environment(formula$terms)
-    if (is.null(env))
-      env <- parent.frame()
-    return(eval(fcall, env))
-  }
-  if (missing(formula)) {
-    if (!missing(data) && inherits(data, "data.frame") &&
-        length(attr(data, "terms")))
-      return(data)
-    formula <- as.formula(data)
-  }
-  else if (missing(data) && inherits(formula, "data.frame")) {
-    if (length(attr(formula, "terms")))
-      return(formula)
-    data <- formula
-    formula <- as.formula(data)
-  }
-  formula <- as.formula(formula)
-  if (missing(na.action)) {
-    if (!is.null(naa <- attr(data, "na.action")) & mode(naa) !=
-        "numeric")
-      na.action <- naa
-    else if (!is.null(naa <- getOption("na.action")))
-      na.action <- naa
-  }
-  if (missing(data))
-    data <- environment(formula)
-  else if (!is.data.frame(data) && !is.environment(data) &&
-           !is.null(attr(data, "class")))
-    data <- as.data.frame(data)
-  else if (is.array(data))
-    stop("'data' must be a data.frame, not a matrix or an array")
-  if (!inherits(formula, "terms"))
-    formula <- terms(formula, data = data)
-  env <- environment(formula)
-  rownames <- .row_names_info(data, 0L)
-  vars <- attr(formula, "variables")
-  predvars <- attr(formula, "predvars")
-  if (is.null(predvars))
-    predvars <- vars
-  varnames <- vapply(vars, deparse2, " ")[-1L]
-  variables <- eval(predvars, data, env)
-  if("AsIs" %in% class(variables[[2L]])) class(variables[[2]]) <- class(variables[[2]])[class(variables[[2]] != "AsIs")]
-  resp <- attr(formula, "response")
-  if (is.null(rownames) && resp > 0L) {
-    lhs <- variables[[resp]]
-    rownames <- if (is.matrix(lhs))
-      rownames(lhs)
-    else names(lhs)
-  }
-  if (possible_newdata && length(variables)) {
-    nr2 <- max(sapply(variables, NROW))
-    if (nr2 != nr)
-      warning(sprintf(paste0(ngettext(nr, "'newdata' had %d row",
-                                      "'newdata' had %d rows"), " ", ngettext(nr2,
-                                                                              "but variable found had %d row", "but variables found have %d rows")),
-                      nr, nr2), call. = FALSE, domain = NA)
-  }
-  if (is.null(attr(formula, "predvars"))) {
-    for (i in seq_along(varnames)) predvars[[i + 1L]] <- makepredictcall(variables[[i]],
-                                                                         vars[[i + 1L]])
-    attr(formula, "predvars") <- predvars
-  }
-  extras <- substitute(list(...))
-  extranames <- names(extras[-1L])
-  extras <- eval(extras, data, env)
-  subset <- eval(substitute(subset), data, env)
-  data <- .External2(C_modelframe, formula, rownames, variables,
-                     varnames, extras, extranames, subset, na.action)
-  if (length(xlev)) {
-    for (nm in names(xlev)) if (!is.null(xl <- xlev[[nm]])) {
-      xi <- data[[nm]]
-      if (is.character(xi))
-        xi <- as.factor(xi)
-      if (!is.factor(xi) || is.null(nxl <- levels(xi)))
-        warning(gettextf("variable '%s' is not a factor",
-                         nm), domain = NA)
-      else {
-        ctr <- attr(xi, "contrasts")
-        xi <- xi[, drop = TRUE]
-        nxl <- levels(xi)
-        if (any(m <- is.na(match(nxl, xl))))
-          stop(sprintf(ngettext(length(m), "factor %s has new level %s",
-                                "factor %s has new levels %s"), nm, paste(nxl[m],
-                                                                          collapse = ", ")), domain = NA)
-        data[[nm]] <- factor(xi, levels = xl, exclude = NULL)
-        if (!identical(attr(data[[nm]], "contrasts"),
-                       ctr))
-          warning(gettext(sprintf("contrasts dropped from factor %s",
-                                  nm), domain = NA), call. = FALSE)
-      }
-    }
-  }
-  else if (drop.unused.levels) {
-    for (nm in names(data)) {
-      x <- data[[nm]]
-      if (is.factor(x) && length(unique(x[!is.na(x)])) <
-          length(levels(x))) {
-        ctr <- attr(x, "contrasts")
-        data[[nm]] <- x[, drop = TRUE]
-        if (!identical(attr(data[[nm]], "contrasts"),
-                       ctr))
-          warning(gettext(sprintf("contrasts dropped from factor %s due to missing levels",
-                                  nm), domain = NA), call. = FALSE)
-      }
-    }
-  }
-  attr(formula, "dataClasses") <- vapply(data, .MFclass, "")
-  attr(data, "terms") <- formula
-  data
-}
-environment(model.frame.default) <- environment(stats::model.frame.default)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

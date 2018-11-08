@@ -1,5 +1,99 @@
 # Script for helper-functions, as used on EmilMisc-package
+# readline_time(prompt, timeout = 3600, precision=.1): Readline with waiting limit ----
+#' Readline with waiting limit
+#'
+#' Normally, when using readline, execution is halted until input is supplied, and if it is not, the script hangs forever
+#' This functions waits a set time for the user to provide input, then returns control
+#'
+#' @param prompt prompt for the user, similar to the one in readline(). Usually ends with a space (or newline).
+#' @param timeout timer in seconds. If set to 0, base::readline is used
+#' @param precision Polling interval in seconds. \cr
+#' Internally, every \code{precision} seconds the script checks if valid input is received.
+#' Smaller values increase responsiveness, but also increase CPU-usage.
+#' @return Input provided by the user, if provided in time (and finished with RETURN)\cr
+#' If the timer has expired, \code{character(0)}, even if the user has started typing but has not yet pressed RETURN.
+#' If used in a non-interactive session, NULL, and if the timer has expired, character(0).\cr
+#' If timeout==0, the same as provided by readline()
+#' @note Unfortunately, does not work on all platforms/in all environments.\cr
+#' It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base]{file}} for details.
+#' In particular, it does not work in RStudio for MacOS, or Rgui for Windows or MacOS.
+#' It does confirmed work on R run from terminal on MacOS 10.13.6\cr
+#' Problems manifest by file('stdin') not being connected to anything, i.e. no input is received, so this function always returns \code{character(0)},
+#' and any input typed is interpreted as a new command. To test, try with a small value of timeout first.
+#' @seealso \code{\link{waitForKey}} for a function that simply waits for a keypress for a set time.
+#' @export
+readline_time <- function(prompt, timeout = 3600, precision=.1) {
+  stopifnot(length(prompt)<=1,
+            is.numeric(timeout),
+            length(timeout)==1,
+            !is.na(timeout),
+            timeout>=0,
+            is.numeric(precision),
+            length(precision)==1,
+            !is.na(precision),
+            precision>0)
+  if(!interactive()) return(NULL)
+  if(timeout==0) return(readline(prompt))
+  timer <- timeout
+  my_in <- file('stdin')
+  open(my_in, blocking=FALSE)
+  cat(prompt)
+  ans <- readLines(my_in, n=1)
+  while(timer>0 && !length(ans)) {
+    Sys.sleep(precision)
+    timer <- timer-precision
+    ans <- readLines(my_in, n=1)
+  }
+  close(my_in)
+  return(ans)
+}
 
+
+# waitForKey(message, time=10, counter=.5, precision=.01): Wait for set time, or continue on input. ----
+#' Wait for set time, or continue on input.
+#'
+#' Waits until a timer has expired, or the user has provided some input (pressed RETURN)\cr
+#' A message is shown, with a countdown-timer if desired.
+#' @param message Message to be shown during countdown. Use {n} as a placeholder for the number of seconds left.
+#' @param time Time to wait, in seconds (approximate)
+#' @param counter Interval to update the message, in seconds. 0 to remain static. Must otherwise be a multiple of precision to work reliably.
+#' @param precision Polling interval to use when checking for a keypress.
+#' @return (invisibly) Either the string 'key' or 'timer', signifying what caused the return
+#' @note Unfortunately, does not work on all platforms/in all environments.\cr
+#' It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base]{file}} for details.
+#' In particular, it does not work in RStudio for MacOS, or Rgui for Windows or MacOS.
+#' It does confirmed work on R run from terminal on MacOS 10.13.6\cr
+#' Problems manifest by file('stdin') not being connected to anything, i.e. no input is received, so this function always returns \code{character(0)},
+#' and any input typed is interpreted as a new command. To test, try with a small value of time first.
+#' @seealso \code{\link{readline_time}} for a function that also collects your input.
+#' @export
+waitForKey <- function(message='Continuing in {n} seconds, or press any key.', time=10, counter=.5, precision=.01) {
+  stopifnot(is.character(message), length(message)==1, !is.na(message),
+            is.numeric(time), length(time)==1, !is.na(time), time>0,
+            is.numeric(counter), length(counter)==1, !is.na(counter), counter>=0,
+            is.numeric(precision), length(precision)==1, !is.na(precision), precision>0)
+  my_in <- file('stdin')
+  open(my_in, blocking=FALSE)
+  ans <- readLines(my_in, n=1)
+  if(counter==0) cat(message)
+  while(time>0 && !length(ans)) {
+    if(counter>0 && !is.null(message) && round(time/counter, digits = 3) %% 1L==0L) {
+      cat(gsub('\\{n\\}', format(round(time, digits=4), width=5, scientific = F), message), '\r', sep = '')
+    }
+    Sys.sleep(precision)
+    time <- time-precision
+    ans <- readLines(my_in, n=1)
+  }
+  close(my_in)
+  if(length(ans)) {
+    return(invisible('key'))
+  } else {
+    return(invisible('timer'))
+  }
+}
+
+
+# libinstandload(): Library Auto-installation and loading ----
 #' Library Auto-installation and loading
 #'
 #' One combined function to load (multiple) packages, and automatically install them if needed
@@ -10,7 +104,6 @@
 #' @param extras logical. Some packages need extra initialization, e.g. extrafonts needs to install fonts. Should extra initializations be done on installation?\cr
 #'     Note that initiliazation scripts are added on an ad-hoc basis, and is not complete. In this first version. it is only implemented for 'extrafont'
 #' @export
-
 libinstandload <- function(..., order=FALSE, verbose=FALSE, extras=TRUE) {
   packs <- list(...)
   if(!all(rapply(packs, class)=='character')) stop('Unexpected arguments, all args in ... should be character or list of characters')
@@ -69,6 +162,7 @@ libinstandload <- function(..., order=FALSE, verbose=FALSE, extras=TRUE) {
   return(invisible(0))
 }
 
+# simple_rapply(x, fn, ..., classes='ANY', inclLists='No'): Alternative for rapply ----
 #' Alternative for rapply
 #'
 #' Function to be used as an alternative for rapply (recursive version of lapply)\cr
@@ -99,7 +193,6 @@ libinstandload <- function(..., order=FALSE, verbose=FALSE, extras=TRUE) {
 #' simple_rapply(L, function(x) {if(!is.null(names(x))) x[order(names(x))] else x})
 #' simple_rapply(L, function(x) {if(!is.null(names(x))) x[order(names(x))] else x}, inclLists=TRUE)
 #' @export
-
 simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
   if(is.logical(inclLists)) {
     inclLists <- ifelse(inclLists, 'First', 'Last')
@@ -123,7 +216,7 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
     }
   }
 }
-
+# %!in%: Value not matching ----
 #' Value not matching
 #'
 #' Simple function, element x is not in y.\cr
@@ -131,15 +224,15 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' Just implemented because I've found myself having to go back too often.
 #'
 #' @param x,y Used as in !(x \%in\% y)
-#' @seealso \code{\link[base]{+}}, \code{\link[base]{-}}, \code{\link[base]{/}}, \code{\link[base]{\%in\%}}, \code{\link[base]{?}}, \code{\link[base]{::}}, \code{\link[base]{:}}, \code{\link[base]{!}}
+#' @seealso \code{\link[base]{\%in\%}}
 #'
 #' @name not-in
 #' @rdname not-in
 #'
 #' @export
-
 `%!in%` <- function(x,y)!('%in%'(x,y))
 
+# LazyAnd(a, b, fun, ...) and LazyOr: Lazy (short-circuited), vectorized &/&& and |/|| ----
 #' Lazy (short-circuited), vectorized &/&& and |/||
 #'
 #' In base R, & is vectorized, and && is short-circuited (also called lazy evaluation).
@@ -193,7 +286,6 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' # is getting results for 62 more occurences (with low probability of being prime,
 #' # probably 2-3 of them are prime), at the cost of a LOT of resources.
 #'
-#'
 #' @export
 LazyAnd <- function(a, b, fun, ...) {
   stopifnot(length(a)==1 || length(a)==length(b))
@@ -207,7 +299,7 @@ LazyOr <- function(a, b, fun, ...) {
   a[is.na(a)|!a] <- a[is.na(a)|!a] & fun(b[is.na(a)|!a], ...)
   return(a)
 }
-
+# Lazyifelse(test, yFun, yIn, nFun, nIn): Lazy version of ifelse ----
 #' Lazy version of ifelse
 #'
 #' When using ifelse, the return values are evaluated for all values, then discarded.
@@ -237,7 +329,7 @@ Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
   return(out)
 }
 
-
+# checkMasking(...): Check for possible masking problems in saved .R-files ----
 #' Check for possible masking problems in saved .R-files
 #'
 #' When loading libraries, the function library warns if functions are masked, but it's often not clear if these functions are used in a script.\cr
@@ -428,7 +520,8 @@ checkMasking <- function(scripts=c(), allowed=getOption('checkMasking_Allowed'),
   }
 }
 
-#' Customary function for printing output and simalteneously writing to a logfile
+# out(...): printing and simultaneously writing to a logfile ----
+#' Customary function for printing output and simultaneously writing to a logfile
 #'
 #' Character vectors are printed using cat instead of print.\cr
 #' Multiple arguments are accepted, as seperate calls\cr
@@ -472,147 +565,51 @@ out <- function(..., logpath=getOption('StandardPaths')[['TextOutput']]) {
   }
 }
 
-#' Alternative for format.Date
+# parent.nenv(env, n): Get parent, grandparent, grandgrandparent, etc. ----
+#' Access environments further in the definition chain
 #'
-#' On the R-devel mailinglist, it was noted that as.Date(Inf, origin='1970-01-01') is stored as a valid Date-object,
-#' and is.na() returns FALSE, but when printing this object is shows 'NA", which is confusing.
-#' It turns out this is because when formatting a Date-object it is converted to a POSIXlt-object, which fails for Inf, as well as other out-of-range values.
-#' Therefore this function default to a numerical value if the date is outside the range 1-1-1 up till 9999-12-31, with a warning
+#' Get the parent, grandparent, grandgrandparent of an environment
+#' @param env an environment
+#' @param n how many steps to go up the chain, >= 0
 #'
-#' @param x Date to format
-#' @param ... Other arguments passed on to format.POSIXlt
+#' @return An enclosing environment
 #'
-#' @export
-format.Date <- function (x, ...) {
-  xx <- format(as.POSIXlt(x), ...)
-  names(xx) <- names(x)
-  if(any(!is.na(x) & (-719162>as.numeric(x) | as.numeric(x)>2932896))) {
-    xx[!is.na(x) & (-719162>as.numeric(x) | as.numeric(x)>2932896)] <-
-      paste('Date with numerical value',as.numeric(x[!is.na(x) & (-719162>as.numeric(x) | as.numeric(x)>2932896)]))
-    warning('Some dates are not in the interval 01-01-01 and 9999-12-31, showing numerical value.')
-  }
-  xx
-}
-
-#' Different approach-route for print.Date
-#'
-#' A bit of a hack, redefining print.Date.
-#' It's the same as in base (R 3.5.0), but this is calling EmilMisc::format.Date
-#' \cr\cr Note that the the interaction between this declaration and the S3-dispatch-system is a bit messy, and getS3method('print', class = 'Date') will be probably not give you this function.
-#' If you do want the source-code, simply call EmilMisc:::printDate (with three colons)
-#'
-#' @param x Date to format
-#' @param max Maximum number of dates to print. NULL to use getOption("max.print", 9999L)/default maximum
-#' @param ... Other arguments passed on to print
+#' @examples
+#' myfun <- function(x) {
+#'   myfun2 <- function(x2) {
+#'     x+x2
+#'   }
+#'   x <- x+1
+#'   return(myfun2)
+#' }
+#' parent.env(environment(myfun(1))) # That is myfuns environment
+#' parent.env(parent.env(environment(myfun(1))))
+#'   # This is the environment in which myfun was defined, normally .GlobalEnv
+#' parent.nenv(environment(myfun(1)), 2) # The same call, but clearer
 #'
 #' @export
-print.Date <- function (x, max = NULL, ...)
-{
-  if (is.null(max))
-    max <- getOption("max.print", 9999L)
-  if (max < length(x)) {
-    print(format(x[seq_len(max)]), max = max, ...)
-    cat(" [ reached getOption(\"max.print\") -- omitted",
-        length(x) - max, "entries ]\n")
-  }
-  else if (length(x))
-    print(format(x), max = max, ...)
-  else cat(class(x)[1L], "of length 0\n")
-  invisible(x)
-}
-
-#' Customized stop, gives lines-numbers if called from script
-#'
-#' Same as base::stop(), but when called from a sourced script, it also output the filename and linenumber
-#' @param ... arguments passed on to base::stop()
-#' @param quiet Useful for controlled stopping from a script. \cr
-#' If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.
-#' @export
-
-stop <- function(..., quiet=FALSE) {
-  if(quiet) {
-    cat(...)
-    opt <- options(show.error.messages = FALSE, error=NULL)
-    on.exit(options(opt))
-  }
-  if(length(sys.call(-1))>0 && sys.call(-1)=='eval(ei, envir)' && sys.call(1)[[1]]=='source') {
-    base::stop('\rError in ',strtrim(utils::getSrcFilename(sys.call(), full.names = TRUE), getOption('width')-20),' (line ',utils::getSrcLocation(sys.call()),'):\n  ', ..., call.=FALSE)
+parent.nenv <- function(env, n) {
+  stopifnot(is.environment(env), is.numeric(n), n>=0)
+  if(n==0) {
+    return(env)
   } else {
-    base::stop('\rError in ',deparse(sys.call(-1)[[1]])[[1]],':\n  ', ...,call. = FALSE)
+    return(parent.env(parent.nenv(env, n-1)))
   }
 }
+# More functions ----
 
-.onAttach <- function(libname, pkgname) {
-  if(identical(NA, getOption('checkMasking_Allowed', default=NA))) {
-    options(checkMasking_Allowed=data.frame(
-      name=c('src', 'n', 'par','FunctionNameThatServesAsAnExample'),
-      env=c('.GlobalEnv', '.GlobalEnv', '.GlobalEnv','any')))
-  }
-  cma <- getOption('checkMasking_Allowed')
-  cma <- data.frame(lapply(cma, as.character), stringsAsFactors = FALSE)
-  cma[nrow(cma)+1,] <- c('stop','package:EmilMisc')
-  options(checkMasking_Allowed=cma)
-  rm(cma)
-  environment(write.table) <- environment(utils::write.table)
-}
-
-#' Modulo-operator with near-equality
-#'
-#' The \code{\link[base:Arithmetic]{`\%\%`}} operator calculates the modulo, but sometimes has rounding errors, e.g. "\code{(9.1/.1) \%\% 1}" gives ~ 1, instead of 0.\cr
-#' Comparable to what all.equal does, this operator has some tolerance for small rounding errors.\cr
-#' If the answer would be equal to the divisor within a small tolerance, 0 is returned instead.
-#'
-#' For integer x and y, the normal \%\%-operator is used
-#'
-#' @usage `\%mod\%`(x, y, tolerance = sqrt(.Machine$double.eps))
-#' x \%mod\% y
-#' @param x,y numeric vectors, similar to those passed on to \%\%
-#' @param tolerance numeric, maximum difference, see \code{\link[base]{all.equal}}. The default is ~ \code{1.5e-8}
-#' @return identical to the result for \%\%, unless the answer would be really close to y, in which case 0 is returned
-#' @note To specify tolerance, use the call \code{`\%mod\%`(x,y,tolerance)}
-#' @note The precedence for \code{\%mod\%} is the same as that for \code{\%\%}
-#'
-#' @name mod
-#' @rdname mod
-#'
-#' @export
-`%mod%` <- function(x,y, tolerance = sqrt(.Machine$double.eps)) {
-  stopifnot(is.numeric(x), is.numeric(y), is.numeric(tolerance),
-            !is.na(tolerance), length(tolerance)==1, tolerance>=0)
-  if(is.integer(x) && is.integer(y)) {
-    return(x %% y)
+myfun <- function(nms) {
+  if(missing(nms)) nms <- get('nms', parent.env(environment()))[-1]
+  newfun <- myfun
+  environment(newfun) <- environment()
+  if(length(nms)>1) {
+    ret <- newfun
   } else {
-    ans <- x %% y
-    return(ifelse(abs(ans-y)<tolerance | abs(ans)<tolerance, 0, ans))
-  }
-}
-
-#' Rewrite of args(), which also returns something workable for all primitives
-#'
-#' The function \code{\link[base]{args}} may return NULL for some primitives, e.g. `[`.
-#' This function checks for that, and in that case returns the most general function possible:
-#' \code{function(...) NULL}
-#' Otherwise the return is identical
-#'
-#' @param name A function, or a character string with the name of a function (which is found using the scope of the caller).
-#' @return Identical as that of \code{\link[base]{args}}, except when called with a primitive, and args() returns NULL.
-#' In that case, an empty function
-#'
-#' @export
-
-args <- function(name) {
-  if(is.character(name)) name <- get(name, parent.frame(), mode='function')
-  if(!is.function(name)) return(NULL)
-  ret <- base::args(name)
-  if(is.null(ret) && is.primitive(name)) {
-    ret <- function(...) NULL
-    environment(ret) <- parent.frame()
+    ret <- nms
   }
   return(ret)
+  print('Something')
 }
-
-
-
 
 
 
