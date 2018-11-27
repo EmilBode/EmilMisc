@@ -152,20 +152,19 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
 # `[<-.data.frame`(x, i, j, value): Bugfix from normal assignment ----
 #' Bugfix for normal data.frame assignment
 #'
-#' See also \href{https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=17483}{issue #17843 at R-bugzilla}
-#' Can be used as a stand-in for the normal data.frame-assignment-method, but works around a bug: when subsetting 0 rows,
-#' a value of length-0 is also accepted
+#' See also \href{https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=17504}{issue #17504 at R-bugzilla}
+#' Can be used as a stand-in for the normal data.frame-assignment-method, but works around a bug:
+#' When assigning multiple columns and specifying rows, now there is no error thrown.
+#' Based on base::`[<-.data.frame` from R-devel, revision 75615 (so also fixes bug 17483)
 #'
 #' @param x The data.frame into which to assign
 #' @param i,j Indices for row(s) and column(s)
-#' @param ... Not used. It is an error to specify anything here, but it is used for consistency with the generic
 #' @param value The new values for replacement
 #'
 #' @seealso \code{\link[base]{[<-.data.frame}}
 #' @export
-`[<-.data.frame` <- function(x, i, j, ..., value)
+`[<-.data.frame` <- function(x, i, j, value)
 {
-  stopifnot(missing(...))
   if(!all(names(sys.call()) %in% c("", "value")))
     warning("named arguments are discouraged")
 
@@ -234,11 +233,12 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
       has.j <- TRUE
     }
   }
-  else {
+  else # nargs() <= 2
     stop("need 0, 1, or 2 subscripts")
-  }
-  ## no columns specified
-  if(has.j && length(j) == 0L) return(x)
+
+  if ((has.j && !length(j)) ||	# "no", i.e. empty columns specified
+      (has.i && !length(i) && !has.j))# empty rows and no col.   specified
+    return(x)
 
   cl <- oldClass(x)
   ## delete class: S3 idiom to avoid any special methods for [[, etc
@@ -260,7 +260,8 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
       }
       i <- ii
     }
-    if(all(i >= 0L) && (nn <- max(i)) > nrows) {
+    if(!is.logical(i) &&
+       (char.i && nextra  ||  all(i >= 0L) && (nn <- max(i)) > nrows)) {
       ## expand
       if(is.null(rows)) rows <- attr(x, "row.names")
       if(!char.i) {
@@ -287,14 +288,12 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
       stop("missing values are not allowed in subscripted assignments of data frames")
     if(is.character(j)) {
       if("" %in% j) stop("column name \"\" cannot match any column")
-      jj <- match(j, names(x))
-      nnew <- sum(is.na(jj))
-      if(nnew > 0L) {
-        n <- is.na(jj)
-        jj[n] <- nvars + seq_len(nnew)
+      jseq <- match(j, names(x))
+      if(anyNA(jseq)) {
+        n <- is.na(jseq)
+        jseq[n] <- nvars + seq_len(sum(n))
         new.cols <- j[n]
       }
-      jseq <- jj
     }
     else if(is.logical(j) || min(j) < 0L)
       jseq <- seq_along(x)[j]
@@ -316,14 +315,18 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
   }
   else jseq <- seq_along(x)
 
+  ## empty rows and not (a *new* column as in  d[FALSE, "new"] <- val )  :
+  if(has.i && !length(iseq) && all(1L <= jseq & jseq <= nvars))
+    return(`class<-`(x, cl))
+
   ## addition in 1.8.0
   if(anyDuplicated(jseq))
     stop("duplicate subscripts for columns")
   n <- length(iseq)
   if(n == 0L) n <- nrows
   p <- length(jseq)
-  if (!length(value)) {
-    value <- list(value)
+  if (is.null(value)) {
+    value <- list(NULL)
   }
   m <- length(value)
   if(!is.list(value)) {
@@ -432,11 +435,11 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
         ## try to make a new column match in length: may be an error
         x[[jj]] <- vjj[FALSE]
         if(length(dim(vjj)) == 2L) {
-          length(x[[j]]) <- nrows * ncol(vjj)
-          dim(x[[j]]) <- c(nrows, ncol(vjj))
+          length(x[[jj]]) <- nrows * ncol(vjj)
+          dim(x[[jj]]) <- c(nrows, ncol(vjj))
           x[[jj]][iseq, ] <- vjj
         } else {
-          length(x[[j]]) <- nrows
+          length(x[[jj]]) <- nrows
           x[[jj]][iseq] <- vjj
         }
       }
@@ -465,8 +468,6 @@ write.table <- function (x, file = "", append = FALSE, quote = TRUE, sep = " ",
   class(x) <- cl
   x
 }
-
-
 
 # format.Date and print.Date: bugfixes/alternatives to base ----
 #' Alternative for format.Date
@@ -524,18 +525,20 @@ print.Date <- function (x, max = NULL, ...)
 #' Same as base::stop(), but when called from a sourced script, it also output the filename and linenumber
 #' @param ... arguments passed on to base::stop()
 #' @param quiet Useful for controlled stopping from a script. \cr
+#' @param call. logical, indicating if the call should become part of the error message. Ignored if quiet = TRUE
 #' If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.
 #' @export
-stop <- function(..., quiet=FALSE) {
+stop <- function(..., quiet=FALSE, call. = TRUE) {
   if(quiet) {
     cat(...)
     opt <- options(show.error.messages = FALSE, error=NULL)
     on.exit(options(opt))
   }
-  if(length(sys.call(-1))>0 && sys.call(-1)=='eval(ei, envir)' && sys.call(1)[[1]]=='source') {
+  callidx <- call. - 2
+  if(length(sys.call(callidx))>0 && sys.call(callidx)=='eval(ei, envir)' && sys.call(1)[[1]]=='source') {
     base::stop('\rError in ',strtrim(utils::getSrcFilename(sys.call(), full.names = TRUE), getOption('width')-20),' (line ',utils::getSrcLocation(sys.call()),'):\n  ', ..., call.=FALSE)
   } else {
-    base::stop('\rError in ',deparse(sys.call(-1)[[1]])[[1]],':\n  ', ...,call. = FALSE)
+    base::stop('\rError in ',deparse(sys.call(callidx)[[1]])[[1]],':\n  ', ...,call. = FALSE)
   }
 }
 
@@ -549,7 +552,8 @@ stop <- function(..., quiet=FALSE) {
 #' For integer x and y, the normal \%\%-operator is used
 #'
 #' @usage `\%mod\%`(x, y, tolerance = sqrt(.Machine$double.eps))
-#' x \%mod\% y
+#' @section Alternative usage:
+#' \code{x \%mod\% y} may be most useful in practice
 #' @param x,y numeric vectors, similar to those passed on to \%\%
 #' @param tolerance numeric, maximum difference, see \code{\link[base]{all.equal}}. The default is ~ \code{1.5e-8}
 #' @return identical to the result for \%\%, unless the answer would be really close to y, in which case 0 is returned
@@ -613,5 +617,62 @@ args <- function(name) {
 #' @export
 formalArgs <- function(def) names(do.call(formals, list(def), envir=parent.frame()))
 
+# tryCatch(expr, ..., finally): With support for expressions, to be evaluated in the same environment as expr ----
+#' Extension of base::tryCatch
+#'
+#' The regular \code{\link[base:tryCatch]{base::tryCatch}} calls a function whenever \code{expr} generates an error, which means this function gets its own environment.
+#' However, sometimes it's easier to evaluate any code in the same environment as \code{expr} (see examples).\cr
+#' Therefore this extension can work with expressions as well, which are then evaluated in the calling context.
+#' If this expression returns a function, then that function is called with the condition-object.
+#' Note that 'expression' here is used in the sense of 'some R-code', so \code{error=function(e) {e$message}} is seen as a very simple expression, which
+#' returns a function, which is then called. This means that you can still use the same calls as in \code{base::tryCatch}.
+#'
+#' For use of the condition-object in the main expressions, you can access it under the name "cond" if there is no variable under that name yet.
+#' If there is one, this variable is left as-is, and the current condition-object can be accessed with \code{get('cond', parent.frame(2))}.\cr
+#' The latter form can always be used (for cases when you're unsure of its existence)
+#'
+#' @note All current variables are potentially modified by the condition-throwing expression, which may be very desirable (for debugging) or
+#' very undesirable/confusing (as some objects can be in an unexpected/corrupted state)
+#'
+#' @param expr Expressions to evaluate that might throw an error
+#' @param ... Handlers to call if expr throws a condition
+#' @param finally expression that is always evaluated before returning or exiting
+#'
+#' @section Note on backwards compatibility:
+#' This function is meant as a stand-in replacement for base::tryCatch, but there are differences in the calling stack.\cr
+#' See for example the difference in the options you can choose from in the following calls:
+#' \code{base::tryCatch(stop(), error=function(e) recover())}\cr
+#' vs\cr
+#' \code{tryCatch(stop(), error=function(e) recover()}\cr\cr
+#' Therefore there may be some differences in debugging code as well, and code should not rely on any output
+#' of parent.frame(n) or length(sys.calls()) etc.
+#'
+#' @examples
+#' errorlog <- character(0) # Or some other previous log
+#' tryCatch({step <- 1;stop('SomeError');step <- 2},
+#'   warning=function(w) print(w),
+#'   error={errorlog <- c(errorlog, paste("\nError occured:\n", cond$message, "\nat step:", step))
+#'          step <- 0
+#'          function(e) {err <- getOption('error'); if(!is.null(err)) eval(err)}
+#'   })
+#'
+#' @export
+tryCatch <- function(expr, ..., finally) {
+  parenv <- parent.frame()
+  handlers <- lapply(substitute(list(...))[-1], function(h) {
+    function(cond) {
+      if(!exists('cond', where = parenv, inherits=FALSE)) {
+        assign('cond', cond, pos = parenv, inherits=FALSE)
+        on.exit(rm('cond', pos = parenv, inherits = FALSE))
+      }
+      ret <- eval(h, parenv)
+      if(is.function(ret)) return(ret(cond)) else return(ret)
+    }
+  })
+  do.call(base::tryCatch, args=c(substitute(expr), handlers, if(!missing(finally)) substitute(finally)), envir = parenv)
+}
+
 # Room for more functions ----
+
+
 

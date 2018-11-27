@@ -1,9 +1,9 @@
 Package: EmilMisc
 Title: Miscellaneous Functions I Found Useful
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person("Emil", "Bode", email = "BodeEmil@gmail.com", role = c("aut", "cre"))
 Description: Miscellanous functions I've written for personal use.
-    Some are variations on common functions, but adapted to my preferences.
+    Some are variations on common functions, but adapted to my preferences, or contain bugfixes.
     To be extended in the future.
 Depends: R (>= 3.5.0)
 Imports:
@@ -17,4 +17,4 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 URL: https://github.com/Dans-labs/R-package_EmilMisc
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1

@@ -4,12 +4,14 @@
 \alias{stop}
 \title{Customized stop, gives lines-numbers if called from script}
 \usage{
-stop(..., quiet = FALSE)
+stop(..., quiet = FALSE, call. = TRUE)
 }
 \arguments{
 \item{...}{arguments passed on to base::stop()}
 
-\item{quiet}{Useful for controlled stopping from a script. \cr
+\item{quiet}{Useful for controlled stopping from a script. \cr}
+
+\item{call.}{logical, indicating if the call should become part of the error message. Ignored if quiet = TRUE
 If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.}
 }
 \description{

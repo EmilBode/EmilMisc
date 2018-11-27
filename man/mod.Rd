@@ -6,7 +6,6 @@
 \title{Modulo-operator with near-equality}
 \usage{
 `\%mod\%`(x, y, tolerance = sqrt(.Machine$double.eps))
-x \%mod\% y
 }
 \arguments{
 \item{x, y}{numeric vectors, similar to those passed on to \%\%}
@@ -29,3 +28,8 @@ To specify tolerance, use the call \code{`\%mod\%`(x,y,tolerance)}
 
 The precedence for \code{\%mod\%} is the same as that for \code{\%\%}
 }
+\section{Alternative usage}{
+
+\code{x \%mod\% y} may be most useful in practice
+}
+

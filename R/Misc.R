@@ -307,7 +307,7 @@ LazyOr <- function(a, b, fun, ...) {
 #' In this function, values are only evaluated when necessary:
 #' yFun is called with yIn for test==TRUE, and
 #' nFun is called with nIn for test==FALSE.
-#' Missing (NA) values in test return NA< without calling either yFun or nFun
+#' Missing (NA) values in test return NA, without calling either yFun or nFun
 #' @param test an object which can be coerced to logical
 #' @param yFun,nFun Functions to be called when test evaluates to TRUE or FALSE respectively
 #' @param yIn,nIn Arguments for yFun and nFun. Recycled if necessary
@@ -597,20 +597,6 @@ parent.nenv <- function(env, n) {
   }
 }
 # More functions ----
-
-myfun <- function(nms) {
-  if(missing(nms)) nms <- get('nms', parent.env(environment()))[-1]
-  newfun <- myfun
-  environment(newfun) <- environment()
-  if(length(nms)>1) {
-    ret <- newfun
-  } else {
-    ret <- nms
-  }
-  return(ret)
-  print('Something')
-}
-
 
 
 

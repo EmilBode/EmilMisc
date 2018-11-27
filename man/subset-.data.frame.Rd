@@ -4,21 +4,20 @@
 \alias{[<-.data.frame}
 \title{Bugfix for normal data.frame assignment}
 \usage{
-\method{[}{data.frame}(x, i, j, ...) <- value
+\method{[}{data.frame}(x, i, j) <- value
 }
 \arguments{
 \item{x}{The data.frame into which to assign}
 
 \item{i, j}{Indices for row(s) and column(s)}
 
-\item{...}{Not used. It is an error to specify anything here, but it is used for consistency with the generic}
-
 \item{value}{The new values for replacement}
 }
 \description{
-See also \href{https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=17483}{issue #17843 at R-bugzilla}
-Can be used as a stand-in for the normal data.frame-assignment-method, but works around a bug: when subsetting 0 rows,
-a value of length-0 is also accepted
+See also \href{https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=17504}{issue #17504 at R-bugzilla}
+Can be used as a stand-in for the normal data.frame-assignment-method, but works around a bug:
+When assigning multiple columns and specifying rows, now there is no error thrown.
+Based on base::`[<-.data.frame` from R-devel, revision 75615 (so also fixes bug 17483)
 }
 \seealso{
 \code{\link[base]{[<-.data.frame}}

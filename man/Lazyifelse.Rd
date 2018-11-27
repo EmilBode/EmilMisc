@@ -19,7 +19,7 @@ This causes problems when you want to check for valid inputs in test.
 In this function, values are only evaluated when necessary:
 yFun is called with yIn for test==TRUE, and
 nFun is called with nIn for test==FALSE.
-Missing (NA) values in test return NA< without calling either yFun or nFun
+Missing (NA) values in test return NA, without calling either yFun or nFun
 }
 \details{
 If you just want to return values, you can use the function \code{\link[base]{identity}}
