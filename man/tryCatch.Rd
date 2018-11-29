@@ -2,9 +2,12 @@
 % Please edit documentation in R/Fixes-extensions.R
 \name{tryCatch}
 \alias{tryCatch}
-\title{Extension of base::tryCatch}
+\alias{withCallingHandlers}
+\title{Extensions of base::tryCatch and base::withCallingHandlers}
 \usage{
 tryCatch(expr, ..., finally)
+
+withCallingHandlers(expr, ...)
 }
 \arguments{
 \item{expr}{Expressions to evaluate that might throw an error}
@@ -14,12 +17,14 @@ tryCatch(expr, ..., finally)
 \item{finally}{expression that is always evaluated before returning or exiting}
 }
 \description{
-The regular \code{\link[base:tryCatch]{base::tryCatch}} calls a function whenever \code{expr} generates an error, which means this function gets its own environment.
+The regular \code{\link[base:tryCatch]{base::tryCatch}} and \code{\link[base]{withCallingHandlers}}
+calls a function whenever \code{expr} generates an error, which means this function gets its own environment.
 However, sometimes it's easier to evaluate any code in the same environment as \code{expr} (see examples).\cr
-Therefore this extension can work with expressions as well, which are then evaluated in the calling context.
+Therefore these extensions can work with expressions as well, which are then evaluated in the calling context.
 If this expression returns a function, then that function is called with the condition-object.
 Note that 'expression' here is used in the sense of 'some R-code', so \code{error=function(e) {e$message}} is seen as a very simple expression, which
-returns a function, which is then called. This means that you can still use the same calls as in \code{base::tryCatch}.
+returns a function, which is then called. This means that you can still use the same calls as in \code{base::tryCatch} and
+\code{withCallingHandlers}.
 }
 \details{
 For use of the condition-object in the main expressions, you can access it under the name "cond" if there is no variable under that name yet.
@@ -32,8 +37,8 @@ very undesirable/confusing (as some objects can be in an unexpected/corrupted st
 }
 \section{Note on backwards compatibility}{
 
-This function is meant as a stand-in replacement for base::tryCatch, but there are differences in the calling stack.\cr
-See for example the difference in the options you can choose from in the following calls:
+This function is meant as a stand-in replacements for the base-functions, but there are differences in the calling stack.
+See for example the difference in the options you can choose from in the following calls:\cr
 \code{base::tryCatch(stop(), error=function(e) recover())}\cr
 vs\cr
 \code{tryCatch(stop(), error=function(e) recover()}\cr\cr
