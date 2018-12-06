@@ -28,7 +28,7 @@ returns a function, which is then called. This means that you can still use the 
 }
 \details{
 For use of the condition-object in the main expressions, you can access it under the name "cond" if there is no variable under that name yet.
-If there is one, this variable is left as-is, and the current condition-object can be accessed with \code{get('cond', parent.frame(2))}.\cr
+If there is one, this variable is left as-is (with a warning), and the current condition-object can be accessed with \code{get('cond', parent.frame(2))}.\cr
 The latter form can always be used (for cases when you're unsure of its existence)
 }
 \note{

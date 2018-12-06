@@ -11,7 +11,10 @@ stop(..., quiet = FALSE, call. = TRUE)
 
 \item{quiet}{Useful for controlled stopping from a script. \cr}
 
-\item{call.}{logical, indicating if the call should become part of the error message. Ignored if quiet = TRUE
+\item{call.}{numeric or logical.\cr
+For a logical: same as in \code{base::stop}, indicating if the call should become part of the error message. Ignored if quiet = TRUE\cr
+For a numeric: number of steps to skip in error-reporting. This is useful if a function calls another, but you want to show it as an error from the caller.
+Be careful that call.=0 is equivalent to call.=TRUE
 If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.}
 }
 \description{

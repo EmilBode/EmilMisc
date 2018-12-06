@@ -525,7 +525,10 @@ print.Date <- function (x, max = NULL, ...)
 #' Same as base::stop(), but when called from a sourced script, it also output the filename and linenumber
 #' @param ... arguments passed on to base::stop()
 #' @param quiet Useful for controlled stopping from a script. \cr
-#' @param call. logical, indicating if the call should become part of the error message. Ignored if quiet = TRUE
+#' @param call. numeric or logical.\cr
+#' For a logical: same as in \code{base::stop}, indicating if the call should become part of the error message. Ignored if quiet = TRUE\cr
+#' For a numeric: number of steps to skip in error-reporting. This is useful if a function calls another, but you want to show it as an error from the caller.
+#' Be careful that call.=0 is equivalent to call.=TRUE
 #' If \code{TRUE}, no output is printed, and a recover-function as provided in options(error=) is bypassed.
 #' @export
 stop <- function(..., quiet=FALSE, call. = TRUE) {
@@ -537,8 +540,12 @@ stop <- function(..., quiet=FALSE, call. = TRUE) {
   callidx <- call. - 2
   if(length(sys.call(callidx))>0 && sys.call(callidx)=='eval(ei, envir)' && sys.call(1)[[1]]=='source') {
     base::stop('\rError in ',strtrim(utils::getSrcFilename(sys.call(), full.names = TRUE), getOption('width')-20),' (line ',utils::getSrcLocation(sys.call()),'):\n  ', ..., call.=FALSE)
-  } else {
+  } else if(is.numeric(call.)) {
+    base::stop('\rError in ',deparse(sys.call(callidx)[[call.+1]])[[1]],':\n  ', ..., call. = FALSE)
+  } else if(call.) {
     base::stop('\rError in ',deparse(sys.call(callidx)[[1]])[[1]],':\n  ', ...,call. = FALSE)
+  } else {
+    base::stop(..., call. =-1)
   }
 }
 
@@ -631,7 +638,7 @@ formalArgs <- function(def) names(do.call(formals, list(def), envir=parent.frame
 #' \code{withCallingHandlers}.
 #'
 #' For use of the condition-object in the main expressions, you can access it under the name "cond" if there is no variable under that name yet.
-#' If there is one, this variable is left as-is, and the current condition-object can be accessed with \code{get('cond', parent.frame(2))}.\cr
+#' If there is one, this variable is left as-is (with a warning), and the current condition-object can be accessed with \code{get('cond', parent.frame(2))}.\cr
 #' The latter form can always be used (for cases when you're unsure of its existence)
 #'
 #' @note All current variables are potentially modified by the condition-throwing expression, which may be very desirable (for debugging) or
@@ -667,6 +674,8 @@ tryCatch <- function(expr, ..., finally) {
       if(!exists('cond', where = parenv, inherits=FALSE)) {
         assign('cond', cond, pos = parenv, inherits=FALSE)
         on.exit(rm('cond', pos = parenv, inherits = FALSE))
+      } else {
+        warning('Variable "cond" already exists, so unable to assign')
       }
       ret <- eval(h, parenv)
       if(is.function(ret)) return(ret(cond)) else return(ret)
@@ -683,6 +692,8 @@ withCallingHandlers <- function (expr, ...) {
       if(!exists('cond', where = parenv, inherits=FALSE)) {
         assign('cond', cond, pos = parenv, inherits=FALSE)
         on.exit(rm('cond', pos = parenv, inherits = FALSE))
+      } else {
+        warning('Variable "cond" already exists, so unable to assign')
       }
       ret <- eval(h, parenv)
       if(is.function(ret)) return(ret(cond)) else return(ret)
