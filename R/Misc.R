@@ -296,7 +296,7 @@ LazyAnd <- function(a, b, fun, ...) {
 #' @export
 LazyOr <- function(a, b, fun, ...) {
   stopifnot(length(a)==1 || length(a)==length(b))
-  a[is.na(a)|!a] <- a[is.na(a)|!a] & fun(b[is.na(a)|!a], ...)
+  a[is.na(a)|!a] <- a[is.na(a)|!a] | fun(b[is.na(a)|!a], ...)
   return(a)
 }
 # Lazyifelse(test, yFun, yIn, nFun, nIn): Lazy version of ifelse ----
