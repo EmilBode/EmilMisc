@@ -17,7 +17,7 @@ extractComments <- function(FileName, max=9, fromLine=1, ToLine=-1, tab='\t') {
 
 if (FALSE) { # Too experimental
 
-  # envpush and envpop: simulate calling stack
+  # envpush and envpop: simulate calling stack ----
   #' Simulate calling of functions: push and pop stack
   #'
   #' Simulate calling of functions and returning, for debugging purposes.\cr\cr
@@ -65,7 +65,7 @@ if (FALSE) { # Too experimental
   #' # and the new environment to be set as the parent of the global environment (the new is 'squeezed' between).
   #' # And x is set to the value of a, y is set to missing, someopt to TRUE, and ... to missing as well.
   #' For completeness, someopt is also given the attribute 'missing', set to TRUE, which causes missing(someopt) to return TRUE as well
-  #'
+  # end ----
   envpush <- function(mycall=NULL, from=.GlobalEnv, envname=NA) {
     mycall <- substitute(mycall)
     mycall <- capture.output(mycall)
@@ -222,6 +222,41 @@ if (FALSE) { # Too experimental
       base::return(as.character(substitute(var)) %in% get0('.missingNULLs', parent.frame(), inherits=FALSE))
     }
   }
+  # fmultimatch(x, table, nomatch=integer(), incomparables=NULL, simplify=FALSE): Return multiple matches, with fmatch help ----
+  #' Combination of \code{\link[fastmatch:fmatch]{fastmatch::fmatch}} and \code{\link[S4Vectors:findMatches]{S4Vectors::findMatches}}
+  #'
+  #' Werkt niet, subset van table moet elke keer nieuwe hash bedenken
+  #'
+  #' It uses \code{fmatch}'s hash to execute faster, but returns multiple matches.
+  #' May not be very fast in the case of many matches or many values to look up, but will work for up to a few matches
+  #' It may be neccesary to first set up your table with \code{fastmatch::fmatch.hash(x, table)} first
+  #'
+  #' @param x Values to look up, should be unique
+  #' @param table values to be matched against
+  #' @param nomatch value to be returned in the case of no matches. Note that this differs from \code{fastmatch::fmatch}
+  #' @param incomparables a vector of values that cannot be matched. Compatibilty feature, any other value other then NULL is discouraged (as fastmatch won't be used in that case)
+  #' @param simplify Should the result be simplified to a vector or matrix (when possible)
+  #'
+  #' @return A list with matched values of x (or an array when simplify=TRUE and possible)
+  #'
+  #' @example
+  #' set.seed(1)
+  #' mytable <- sample(1:100, size=50, replace=TRUE)
+  #' fmultimatch(1:10, mytable)
+  #'
+  #' @export
+  fmultimatch <- function(x, table, nomatch=integer(), incomparables=NULL, simplify=FALSE) {
+    stopifnot(!anyDuplicated(x))
+    ret <- rep(list(integer()), length(x))
+    found <- integer()
+    while(TRUE) {
+      newmtches <- fastmatch::fmatch(x, table[-found], incomparables = incomparables)
+      if (all(is.na(newmtches))) break
+      found <- c(found, newmtches[!is.na(newmtches)])
+      ret <- mapply(c, ret, newmtches)
+    }
+  }
+  # More functions ----
 }
 
 

@@ -16,7 +16,7 @@
 #'                  d='Four;Five;Six',
 #'                  e=4)))
 #' \dontshow{environment(write.table) <- environment(utils::write.table)}
-#' write.table(df, "~/Desktop/Tempfile.csv", quote = TRUE, col.names = NA,
+#' write.table(df, "~/../Desktop/Tempfile.csv", quote = TRUE, col.names = NA,
 #'             sep = ";", dec = ",", qmethod = "double")
 #' # This fails for utils::write.table, because Four;Five;Six is unquoted, rendering the csv useless
 #' @export

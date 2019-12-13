@@ -596,6 +596,24 @@ parent.nenv <- function(env, n) {
     return(parent.env(parent.nenv(env, n-1)))
   }
 }
+# Duplicated with fromLast=NA working for both directions ----
+#' Determine duplicate elements, possibly in both directions
+#' @param x a vector or a data frame or an array or NULL.
+#' @param incomparables a vector of values that cannot be compared. FALSE is a special value, meaning that all values can be compared, and may be the only value accepted for methods other than the default. It will be coerced internally to the same type as x.
+#' @param fromLast logical indicating if duplication should be considered from the reverse side (TRUE), the start (FALSE), or from both sides (NA)
+#' @param ... arguments for particular methods
+#'
+#' @details
+#' In the case of \code{fromLast} either \code{TRUE} or \code{FALSE}, \code{\link[base:duplicated]{base::duplicated}} is called directly.
+#' Only when it's \code{NA}, comparison is done from both sides
+duplicated <- function(x, incomparables=FALSE, fromLast=FALSE, ...) {
+  if(is.na(fromLast)) {
+    return(base::duplicated(x, incomparables, fromLast = FALSE, ...) |
+           base::duplicated(x, incomparables, fromLast = TRUE, ...))
+  } else {
+    base::duplicated(x, incomparables, fromLast, ...)
+  }
+}
 # More functions ----
 
 
