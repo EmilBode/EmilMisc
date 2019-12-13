@@ -14,7 +14,7 @@ tryCatch(expr, ..., finally)
 \item{finally}{expression that is always evaluated before returning or exiting}
 }
 \description{
-The regular \code{\link[base:tryCatch]{base::tryCatch}} calls a function whenever \code{expr} generates an error, which means this function gets its own environment.
+The regular \code{\link[base:conditions]{base::tryCatch}} calls a function whenever \code{expr} generates an error, which means this function gets its own environment.
 However, sometimes it's easier to evaluate any code in the same environment as \code{expr} (see examples).\cr
 Therefore this extension can work with expressions as well, which are then evaluated in the calling context.
 If this expression returns a function, then that function is called with the condition-object.

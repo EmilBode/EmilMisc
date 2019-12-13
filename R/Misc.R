@@ -15,7 +15,7 @@
 #' If used in a non-interactive session, NULL, and if the timer has expired, character(0).\cr
 #' If timeout==0, the same as provided by readline()
 #' @note Unfortunately, does not work on all platforms/in all environments.\cr
-#' It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base]{file}} for details.
+#' It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base:connections]{file}} for details.
 #' In particular, it does not work in RStudio for MacOS, or Rgui for Windows or MacOS.
 #' It does confirmed work on R run from terminal on MacOS 10.13.6\cr
 #' Problems manifest by file('stdin') not being connected to anything, i.e. no input is received, so this function always returns \code{character(0)},
@@ -60,7 +60,7 @@ readline_time <- function(prompt, timeout = 3600, precision=.1) {
 #' @param precision Polling interval to use when checking for a keypress.
 #' @return (invisibly) Either the string 'key' or 'timer', signifying what caused the return
 #' @note Unfortunately, does not work on all platforms/in all environments.\cr
-#' It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base]{file}} for details.
+#' It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base:connections]{file}} for details.
 #' In particular, it does not work in RStudio for MacOS, or Rgui for Windows or MacOS.
 #' It does confirmed work on R run from terminal on MacOS 10.13.6\cr
 #' Problems manifest by file('stdin') not being connected to anything, i.e. no input is received, so this function always returns \code{character(0)},
@@ -220,11 +220,11 @@ simple_rapply <- function(x, fn, ..., classes='ANY', inclLists='No') {
 #' Value not matching
 #'
 #' Simple function, element x is not in y.\cr
-#' \code{x \%!in\% y} is the same as \code{!x \link[base]{\%in\%} y}\cr
+#' \code{x \%!in\% y} is the same as \code{!x \link[base:match]{\%in\%} y}\cr
 #' Just implemented because I've found myself having to go back too often.
 #'
 #' @param x,y Used as in !(x \%in\% y)
-#' @seealso \code{\link[base]{\%in\%}}
+#' @seealso \code{\link[base:match]{\%in\%}}
 #'
 #' @name not-in
 #' @rdname not-in
@@ -383,7 +383,7 @@ Lazyifelse <- function(test, yFun, yIn, nFun, nIn) {
 #'         Or #'s as part of a string, as everything after # is ignored: gsub('#','',duplicateFunction(text)) passes.\cr
 #' \item Libraries that have not yet been loaded are not checked! Advise is to specify all needed libraries first, then run 'checkMasking'.
 #' \item Functions having their own environments may end up calling other functions then those first in the search path. This may cause both false positives and false negatives
-#' \item If a function is marked \code{\link[base]{.Deprecated}} or \code{\link[base]{.Defunct}}, an attempt is made to let it pass. \cr
+#' \item If a function is marked \code{\link[base:Deprecated]{.Deprecated}} or \code{\link[base:Defunct]{.Defunct}}, an attempt is made to let it pass. \cr
 #'         The script looks for the "new" argument in .Deprecated or .Defunct. If there is none, no package is provided, or there is
 #'         a replacement with a different name, the script lets it pass. If a package is provided, the script checks whether this package
 #'         is higher on the search-list. \cr
@@ -606,6 +606,8 @@ parent.nenv <- function(env, n) {
 #' @details
 #' In the case of \code{fromLast} either \code{TRUE} or \code{FALSE}, \code{\link[base:duplicated]{base::duplicated}} is called directly.
 #' Only when it's \code{NA}, comparison is done from both sides
+#'
+#' @export
 duplicated <- function(x, incomparables=FALSE, fromLast=FALSE, ...) {
   if(is.na(fromLast)) {
     return(base::duplicated(x, incomparables, fromLast = FALSE, ...) |

@@ -27,7 +27,7 @@ This functions waits a set time for the user to provide input, then returns cont
 }
 \note{
 Unfortunately, does not work on all platforms/in all environments.\cr
-It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base]{file}} for details.
+It is dependent on being able to read from file('stdin'), which is different from stdin(), see \code{\link[base:connections]{file}} for details.
 In particular, it does not work in RStudio for MacOS, or Rgui for Windows or MacOS.
 It does confirmed work on R run from terminal on MacOS 10.13.6\cr
 Problems manifest by file('stdin') not being connected to anything, i.e. no input is received, so this function always returns \code{character(0)},

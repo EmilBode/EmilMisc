@@ -68,7 +68,7 @@ This function may fail to notice problems if it doens't recognize function-names
         Or #'s as part of a string, as everything after # is ignored: gsub('#','',duplicateFunction(text)) passes.\cr
 \item Libraries that have not yet been loaded are not checked! Advise is to specify all needed libraries first, then run 'checkMasking'.
 \item Functions having their own environments may end up calling other functions then those first in the search path. This may cause both false positives and false negatives
-\item If a function is marked \code{\link[base]{.Deprecated}} or \code{\link[base]{.Defunct}}, an attempt is made to let it pass. \cr
+\item If a function is marked \code{\link[base:Deprecated]{.Deprecated}} or \code{\link[base:Defunct]{.Defunct}}, an attempt is made to let it pass. \cr
         The script looks for the "new" argument in .Deprecated or .Defunct. If there is none, no package is provided, or there is
         a replacement with a different name, the script lets it pass. If a package is provided, the script checks whether this package
         is higher on the search-list. \cr
